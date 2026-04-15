@@ -1,28 +1,27 @@
-FRASES = {
-    "motivacao": [
-        "Bora, hoje tá leve. Só seguir a sequência e fechar o dia.",
-        "Confia no processo: passo a passo e sem inventar moda.",
-        "Tu não precisa decidir nada. Só executar o que já tá pronto.",
-    ],
-    "cobranca": [
-        "Tu vacilou nas últimas questões. Vamos reforçar isso agora.",
-        "Sem pular etapa. Fecha a tarefa 1 antes de avançar.",
-        "Hoje é dia de consistência, não de perfeição.",
-    ],
-    "reconhecimento": [
-        "Isso aqui tu já domina. Vou subir um pouco o nível.",
-        "Mandou bem demais no bloco passado. Mantém o ritmo.",
-    ],
-}
+def gerar_mensagem_diaria(
+    taxa_acerto: float = 0.7,
+    pendencias: int = 0,
+    dias_sem_estudar: int = 0,
+    dias_consecutivos: int = 0,
+) -> str:
+    if dias_sem_estudar >= 1:
+        return "tu sumiu ontem 👀 bora voltar hoje sem drama"
 
-
-def _pick(lista: list[str], seed: int) -> str:
-    return lista[seed % len(lista)]
-
-
-def gerar_mensagem_diaria(taxa_acerto: float = 0.7, pendencias: int = 0) -> str:
     if pendencias > 0:
-        return _pick(FRASES["cobranca"], pendencias)
-    if taxa_acerto > 0.82:
-        return _pick(FRASES["reconhecimento"], round(taxa_acerto * 100))
-    return _pick(FRASES["motivacao"], round(taxa_acerto * 100))
+        if taxa_acerto < 0.6:
+            return "tu vacilou nisso, bora corrigir. faz a primeira tarefa agora e resolve"
+        return "sem pular etapa. fecha a próxima tarefa agora"
+
+    if taxa_acerto > 0.8 and dias_consecutivos >= 2:
+        return "boa, isso aqui fechou. hoje a gente reduz repetição e sobe nível"
+
+    if taxa_acerto > 0.8:
+        return "boa, isso aqui fechou. segue pro próximo bloco"
+
+    return "faz isso agora e resolve"
+
+
+def feedback_conclusao(ordem_tarefa: int, total: int) -> str:
+    if ordem_tarefa >= total:
+        return "boa, isso aqui fechou"
+    return "ok, segue pro próximo"

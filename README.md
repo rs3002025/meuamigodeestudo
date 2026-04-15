@@ -32,6 +32,13 @@ python app.py
 - `POST /api/tarefas/<user_id>/desempenho`
 - `GET /api/avaliacao/<user_id>/surpresa`
 
+## Comportamentos adicionados
+- Streak de estudo (`dias_consecutivos`) e cálculo de ausência (`dias_sem_estudar`).
+- Bloqueio de conclusão fora de ordem em tarefas sequenciais.
+- Feedback imediato ao concluir tarefa.
+- Mensagens adaptadas por ausência, pendências e desempenho.
+- Avaliação invisível com chance aleatória (20%) e sem repetir conteúdo recente.
+
 ## Exemplo rápido
 ```bash
 curl -X POST http://localhost:3000/api/plano/iniciar \

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from services.db import memory
+from services.db import get_user_metrics, memory
 
 CARGA_POR_NIVEL = {
     "iniciante": 40,
@@ -36,6 +36,7 @@ def gerar_plano_inicial(payload: dict) -> dict:
     }
 
     memory.plans[user_id] = plano
+    get_user_metrics(user_id)
     return plano
 
 
@@ -54,12 +55,12 @@ def ajustar_plano_com_desempenho(user_id: str, desempenho_dia: dict) -> dict | N
     carga_diaria = plano["cargaDiaria"]
     foco_atual = list(plano["focoAtual"])
 
-    if taxa_acerto < 0.55:
+    if taxa_acerto < 0.6:
         carga_diaria = max(25, carga_diaria - 10)
-        foco_atual = ["revisao guiada", "questoes comentadas", "micro resumo"]
+        foco_atual = ["reforco materia fraca", "questoes comentadas", "revisao ativa"]
     elif taxa_acerto > 0.8 and erros_recorrentes <= 1:
-        carga_diaria = min(120, carga_diaria + 10)
-        foco_atual = ["teoria avancada", "questoes mistas", "simulado rapido"]
+        carga_diaria = min(120, carga_diaria)
+        foco_atual = ["conteudo novo", "questoes mistas", "menos repeticao"]
 
     atualizado = {
         **plano,
@@ -70,4 +71,7 @@ def ajustar_plano_com_desempenho(user_id: str, desempenho_dia: dict) -> dict | N
     }
 
     memory.plans[user_id] = atualizado
+
+    metrics = get_user_metrics(user_id)
+    metrics["ultima_taxa_acerto"] = taxa_acerto
     return atualizado

@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
-from services.ia_service import classificar_erro
+from services.db import get_user_metrics, atualizar_dias_sem_estudar
+from services.ia_service import classificar_erro, talvez_gerar_avaliacao_invisivel
 from services.node_service import gerar_mensagem_diaria
 from services.plano_service import ajustar_plano_com_desempenho, buscar_plano
 from services.tarefa_service import buscar_tarefas_do_dia, concluir_tarefa, gerar_tarefas_diarias
@@ -18,16 +19,39 @@ def gerar_tarefas():
         return jsonify({"erro": "Crie um plano antes de gerar tarefas."}), 404
 
     tarefas = gerar_tarefas_diarias(user_id, plano)
-    mensagem = gerar_mensagem_diaria(0.7, 0)
-    return jsonify({"mensagem": mensagem, "tarefas": tarefas}), 201
+    metrics = atualizar_dias_sem_estudar(user_id)
+    mensagem = gerar_mensagem_diaria(
+        taxa_acerto=float(metrics.get("ultima_taxa_acerto") or 0.7),
+        pendencias=len(tarefas),
+        dias_sem_estudar=int(metrics.get("dias_sem_estudar") or 0),
+        dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
+    )
+
+    avaliacao_surpresa = talvez_gerar_avaliacao_invisivel(
+        plano["objetivo"],
+        metrics.get("conteudos_recentes_avaliacao", []),
+    )
+    if avaliacao_surpresa:
+        tema = avaliacao_surpresa["questoes"][0]["tema"]
+        recentes = metrics.get("conteudos_recentes_avaliacao", [])
+        metrics["conteudos_recentes_avaliacao"] = (recentes + [tema])[-3:]
+
+    return jsonify({"mensagem": mensagem, "tarefas": tarefas, "extra": avaliacao_surpresa}), 201
 
 
 @tarefa_bp.get("/<user_id>/hoje")
 def tarefas_hoje(user_id: str):
     tarefas = buscar_tarefas_do_dia(user_id)
+    metrics = atualizar_dias_sem_estudar(user_id)
     pendencias = len([t for t in tarefas if t["status"] != "concluida"])
-    mensagem = gerar_mensagem_diaria(0.7, pendencias)
-    return jsonify({"mensagem": mensagem, "tarefas": tarefas})
+
+    mensagem = gerar_mensagem_diaria(
+        taxa_acerto=float(metrics.get("ultima_taxa_acerto") or 0.7),
+        pendencias=pendencias,
+        dias_sem_estudar=int(metrics.get("dias_sem_estudar") or 0),
+        dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
+    )
+    return jsonify({"mensagem": mensagem, "tarefas": tarefas, "streak": metrics.get("dias_consecutivos", 0)})
 
 
 @tarefa_bp.post("/<user_id>/concluir")
@@ -61,4 +85,11 @@ def desempenho(user_id: str):
     if not plano_atualizado:
         return jsonify({"erro": "Plano não encontrado."}), 404
 
-    return jsonify({"planoAtualizado": plano_atualizado, "errosClassificados": erros_classificados})
+    metrics = get_user_metrics(user_id)
+    return jsonify(
+        {
+            "planoAtualizado": plano_atualizado,
+            "errosClassificados": erros_classificados,
+            "resumo": {"taxaAcerto": taxa_acerto, "streak": metrics.get("dias_consecutivos", 0)},
+        }
+    )

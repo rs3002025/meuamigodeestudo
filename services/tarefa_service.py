@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
-from services.db import memory
+from services.db import memory, registrar_estudo
+from services.node_service import feedback_conclusao
 
 
 def _hoje() -> str:
@@ -68,8 +69,16 @@ def concluir_tarefa(user_id: str, task_id: str, data: str | None = None) -> tupl
 
     pendente_anterior = next((t for t in tarefas[:idx] if t["status"] != "concluida"), None)
     if pendente_anterior:
-        return {"erro": "Fluxo sequencial ativo. Conclua a tarefa anterior primeiro."}, 400
+        return {"erro": "Conclua a tarefa anterior primeiro"}, 400
 
     tarefas[idx] = {**tarefas[idx], "status": "concluida", "concluidaEm": _agora_iso()}
     memory.tasks[chave] = tarefas
-    return {"tarefas": tarefas}, 200
+
+    metricas = registrar_estudo(user_id)
+    feedback = feedback_conclusao(tarefas[idx]["ordem"], len(tarefas))
+
+    return {
+        "tarefas": tarefas,
+        "feedback": feedback,
+        "diasConsecutivos": metricas["dias_consecutivos"],
+    }, 200
