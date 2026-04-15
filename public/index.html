@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amigo de Estudo</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      .card {
+        width: min(680px, 92vw);
+        background: #111827;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 24px;
+      }
+      h1 { margin-top: 0; }
+      .muted { color: #cbd5e1; }
+      li { margin-bottom: 8px; }
+      code {
+        background: #1e293b;
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Amigo de Estudo 🧠</h1>
+      <p class="muted">Plataforma de estudo com zero decisão: o sistema define o plano, entrega as tarefas e adapta automaticamente.</p>
+      <ul>
+        <li><code>POST /api/plano/iniciar</code> cria plano automático.</li>
+        <li><code>POST /api/tarefas/gerar</code> gera rotina diária sequencial.</li>
+        <li><code>POST /api/tarefas/:userId/desempenho</code> ajusta plano por performance.</li>
+        <li><code>GET /api/avaliacao/:userId/surpresa</code> roda avaliação invisível.</li>
+      </ul>
+    </main>
+  </body>
+</html>
