@@ -57,7 +57,7 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO tasks (id, user_id, data_ref, payload)
-                VALUES (%s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s::jsonb)
                 ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload
             """, (task_key, user_id, hoje, json.dumps(tarefas)))
             conn.commit()
@@ -92,7 +92,7 @@ def concluir_tarefa(user_id: str, task_id: str, data: str | None = None) -> tupl
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("UPDATE tasks SET payload = %s WHERE id = %s", (json.dumps(tarefas), task_key))
+            cur.execute("UPDATE tasks SET payload = %s::jsonb WHERE id = %s", (json.dumps(tarefas), task_key))
             conn.commit()
 
     metricas = registrar_estudo(user_id)

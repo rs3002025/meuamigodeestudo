@@ -50,7 +50,7 @@ def gerar_plano_inicial(payload: dict) -> dict:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO plans (user_id, payload)
-                VALUES (%s, %s)
+                VALUES (%s, %s::jsonb)
                 ON CONFLICT (user_id) DO UPDATE SET payload = EXCLUDED.payload
             """, (user_id, json.dumps(plano)))
             conn.commit()
@@ -92,7 +92,7 @@ def ajustar_plano_com_desempenho(user_id: str, desempenho_dia: dict) -> dict | N
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("UPDATE plans SET payload = %s WHERE user_id = %s", (json.dumps(atualizado), user_id))
+            cur.execute("UPDATE plans SET payload = %s::jsonb WHERE user_id = %s", (json.dumps(atualizado), user_id))
             cur.execute("UPDATE users SET ultima_taxa_acerto = %s WHERE id = %s", (taxa_acerto, user_id))
             conn.commit()
 

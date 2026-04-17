@@ -79,7 +79,7 @@ def _chamar_ia(prompt: str) -> str | None:
         return None
 
     payload = {
-        "model": "gpt-4o-mini",
+        "model": "gpt-5.4-nano",
         "messages": [
             {"role": "system", "content": "Você é um professor particular focado em explicar conceitos e dar exercícios simples em JSON válido."},
             {"role": "user", "content": prompt}
@@ -101,8 +101,12 @@ def _chamar_ia(prompt: str) -> str | None:
         with request.urlopen(req, timeout=20) as response:
             data = json.loads(response.read().decode("utf-8"))
             return data["choices"][0]["message"]["content"]
-    except (error.URLError, error.HTTPError, TimeoutError, json.JSONDecodeError, KeyError, IndexError) as e:
-        print(f"Erro na IA: {e}")
+    except error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        print(f"Erro HTTP da OpenAI ({e.code}): {error_body}")
+        return None
+    except (error.URLError, TimeoutError, json.JSONDecodeError, KeyError, IndexError) as e:
+        print(f"Erro de conexão/parse na IA: {e}")
         return None
 
 
