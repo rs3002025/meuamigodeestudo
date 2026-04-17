@@ -56,13 +56,15 @@ def normalizar_lista_conteudos(raw: str) -> list[str]:
     return normalized
 
 
-def _fallback_conteudo(materia: str, tema: str) -> dict:
-    api_key_status = "O administrador do sistema não configurou a chave da API (OPENAI_API_KEY) no ambiente." if not os.getenv("OPENAI_API_KEY") else "Houve uma falha de conexão temporária."
+def _fallback_conteudo(materia: str, tema: str, erro_tecnico: str = None) -> dict:
+    if not erro_tecnico:
+        erro_tecnico = "O administrador não configurou a chave da API." if not os.getenv("OPENAI_API_KEY") else "Houve uma falha de conexão ou parsing temporária."
+
     return {
         "explicacao": (
             f"Ops, parece que a inteligência artificial está indisponível no momento! "
             f"Eu não consegui gerar a explicação real para '{tema}' em {materia}.\n\n"
-            f"⚠️ Motivo técnico: {api_key_status}"
+            f"⚠️ Motivo técnico: {erro_tecnico}"
         ),
         "exemplo": f"Exemplo: Quando a IA voltar, você verá um caso de uso real de {tema} aqui.",
         "exercicios": [
@@ -73,11 +75,13 @@ def _fallback_conteudo(materia: str, tema: str) -> dict:
     }
 
 
-def _chamar_ia(prompt: str) -> str | None:
+def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
     api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        api_key = api_key.strip()
 
     if not api_key:
-        return None
+        return None, "Variável de ambiente OPENAI_API_KEY ausente ou vazia."
 
     payload = {
         "model": "gpt-5.4-nano",
@@ -103,14 +107,14 @@ def _chamar_ia(prompt: str) -> str | None:
         # Increase timeout to 60s as some complex requests might delay
         with request.urlopen(req, timeout=60) as response:
             data = json.loads(response.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"]
+            return data["choices"][0]["message"]["content"], None
     except error.HTTPError as e:
         error_body = e.read().decode("utf-8")
         print(f"Erro HTTP da OpenAI ({e.code}): {error_body}")
-        return None
+        return None, f"Erro HTTP {e.code}: {error_body}"
     except (error.URLError, TimeoutError, json.JSONDecodeError, KeyError, IndexError) as e:
         print(f"Erro de conexão/parse na IA: {e}")
-        return None
+        return None, f"Erro na requisição: {e}"
 
 
 def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
@@ -142,13 +146,14 @@ Retorne estritamente um JSON com a exata estrutura:
 }}
 """.strip()
 
-    raw = _chamar_ia(prompt)
+    raw, erro_tecnico = _chamar_ia(prompt)
 
     # Limpa marcação Markdown se a API devolver (ex: ```json\n{...}\n```)
     if raw and raw.startswith("```"):
         raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
         raw = re.sub(r"```$", "", raw).strip()
 
+    is_fallback = False
     if raw:
         try:
             parsed = json.loads(raw)
@@ -160,12 +165,18 @@ Retorne estritamente um JSON com a exata estrutura:
             }
         except json.JSONDecodeError as e:
             print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
-            content = _fallback_conteudo(materia, tema)
+            content = _fallback_conteudo(materia, tema, f"JSON Inválido: {e}")
+            is_fallback = True
     else:
-        content = _fallback_conteudo(materia, tema)
+        content = _fallback_conteudo(materia, tema, erro_tecnico)
+        is_fallback = True
 
     increment_ia_daily_count(user_id)
-    set_cached_content(user_id, materia, tema, content)
+
+    # IMPORTANTE: Nunca cacheie o fallback, senão o assunto ficará permanentemente inacessível mesmo após o erro resolver.
+    if not is_fallback:
+        set_cached_content(user_id, materia, tema, content)
+
     return {**content, "cache": False}
 
 
