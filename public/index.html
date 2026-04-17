@@ -10,37 +10,222 @@
         font-family: Inter, Arial, sans-serif;
         background: #0f172a;
         color: #f8fafc;
+        min-height: 100vh;
         display: grid;
         place-items: center;
-        min-height: 100vh;
       }
       .card {
-        width: min(680px, 92vw);
+        width: min(720px, 94vw);
         background: #111827;
         border: 1px solid #334155;
-        border-radius: 14px;
-        padding: 24px;
+        border-radius: 16px;
+        padding: 22px;
       }
-      h1 { margin-top: 0; }
       .muted { color: #cbd5e1; }
-      li { margin-bottom: 8px; }
-      code {
-        background: #1e293b;
-        border-radius: 6px;
-        padding: 2px 6px;
+      .hidden { display: none; }
+      label { display: block; margin-bottom: 8px; }
+      input, button, textarea {
+        font: inherit;
       }
+      input, textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #334155;
+        background: #0b1220;
+        color: #f8fafc;
+        margin-bottom: 10px;
+      }
+      .btn {
+        padding: 10px 14px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .btn.primary { background: #3b82f6; color: #fff; }
+      .btn.secondary { background: #1f2937; color: #fff; border: 1px solid #334155; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; }
+      .step { margin-bottom: 14px; }
+      .bubble {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 10px;
+        margin: 8px 0;
+      }
+      ul { padding-left: 20px; }
+      .error { color: #fda4af; }
     </style>
   </head>
   <body>
     <main class="card">
       <h1>Amigo de Estudo 🧠</h1>
-      <p class="muted">Plataforma de estudo com zero decisão: o sistema define o plano, entrega as tarefas e adapta automaticamente.</p>
-      <ul>
-        <li><code>POST /api/plano/iniciar</code> cria plano automático.</li>
-        <li><code>POST /api/tarefas/gerar</code> gera rotina diária sequencial.</li>
-        <li><code>POST /api/tarefas/:userId/desempenho</code> ajusta plano por performance.</li>
-        <li><code>GET /api/avaliacao/:userId/surpresa</code> roda avaliação invisível.</li>
-      </ul>
+      <p class="muted">Onboarding rápido: 2–3 respostas e já começa as tarefas.</p>
+
+      <section id="onboarding">
+        <div id="chat"></div>
+
+        <div id="step1" class="step">
+          <label for="objetivo">o que tu quer estudar?</label>
+          <input id="objetivo" type="text" placeholder="ex: concurso INSS, prova de matemática" />
+          <button class="btn primary" id="btn-step1">Continuar</button>
+        </div>
+
+        <div id="step2-concurso" class="step hidden">
+          <label>tu já tem o conteúdo do edital?</label>
+          <div class="row">
+            <button class="btn secondary" data-edit="sim">sim</button>
+            <button class="btn secondary" data-edit="nao">não tenho</button>
+          </div>
+        </div>
+
+        <div id="step3-materias" class="step hidden">
+          <label for="materias">manda as matérias principais (separadas por vírgula)</label>
+          <textarea id="materias" rows="2" placeholder="português, matemática, raciocínio lógico"></textarea>
+          <button class="btn primary" id="btn-final-concurso">Gerar plano</button>
+        </div>
+
+        <div id="step2-escola" class="step hidden">
+          <label for="conteudo">quais assuntos vão cair?</label>
+          <textarea id="conteudo" rows="2" placeholder="ex: função do 2º grau, geometria, revolução francesa"></textarea>
+          <div class="row">
+            <button class="btn primary" id="btn-final-escola">Gerar plano</button>
+            <button class="btn secondary" id="btn-generico">Quero só testar no genérico</button>
+          </div>
+        </div>
+
+        <p id="erro" class="error"></p>
+      </section>
+
+      <section id="resultado" class="hidden">
+        <h2>Hoje tu vai fazer isso:</h2>
+        <p id="mensagem" class="bubble"></p>
+        <p id="aviso" class="muted"></p>
+        <ul id="tarefas"></ul>
+      </section>
     </main>
+
+    <script>
+      const state = {
+        userId: localStorage.getItem('amigo_user_id') || `u-${Date.now()}`,
+        objetivo: '',
+        tipo: 'outro',
+        temConteudo: '',
+      };
+      localStorage.setItem('amigo_user_id', state.userId);
+
+      const $ = (id) => document.getElementById(id);
+
+      function addBubble(text) {
+        const el = document.createElement('p');
+        el.className = 'bubble';
+        el.textContent = text;
+        $('chat').appendChild(el);
+      }
+
+      function showError(msg = '') {
+        $('erro').textContent = msg;
+      }
+
+      async function post(url, payload) {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.erro || 'erro ao processar');
+        return data;
+      }
+
+      async function detectarTipo() {
+        showError('');
+        const objetivo = $('objetivo').value.trim();
+        if (!objetivo) {
+          showError('me diz o que tu quer estudar');
+          return;
+        }
+
+        state.objetivo = objetivo;
+        addBubble(`Objetivo: ${objetivo}`);
+
+        try {
+          const data = await post('/api/onboarding/detectar-tipo', { objetivo });
+          state.tipo = data.tipo;
+
+          $('step1').classList.add('hidden');
+          if (state.tipo === 'concurso') {
+            $('step2-concurso').classList.remove('hidden');
+          } else {
+            $('step2-escola').classList.remove('hidden');
+          }
+        } catch (e) {
+          showError(e.message);
+        }
+      }
+
+      async function finalizarOnboarding(extra = {}) {
+        showError('');
+
+        try {
+          const data = await post('/api/onboarding/finalizar', {
+            userId: state.userId,
+            objetivo: state.objetivo,
+            tipo: state.tipo,
+            temConteudo: state.temConteudo,
+            ...extra,
+          });
+
+          $('onboarding').classList.add('hidden');
+          $('resultado').classList.remove('hidden');
+          $('mensagem').textContent = data.mensagem;
+          $('aviso').textContent = data.onboarding.aviso || '';
+
+          const ul = $('tarefas');
+          ul.innerHTML = '';
+          data.tarefas.forEach((task) => {
+            const li = document.createElement('li');
+            li.textContent = `${task.ordem}. ${task.titulo}`;
+            ul.appendChild(li);
+          });
+        } catch (e) {
+          showError(e.message);
+        }
+      }
+
+      $('btn-step1').addEventListener('click', detectarTipo);
+
+      document.querySelectorAll('[data-edit]').forEach((btn) => {
+        btn.addEventListener('click', async (event) => {
+          state.temConteudo = event.target.getAttribute('data-edit');
+          addBubble(`Edital: ${state.temConteudo === 'sim' ? 'sim' : 'não tenho'}`);
+
+          $('step2-concurso').classList.add('hidden');
+          if (state.temConteudo === 'sim') {
+            $('step3-materias').classList.remove('hidden');
+          } else {
+            await finalizarOnboarding({ aceitarGenerico: true, conteudo: '' });
+          }
+        });
+      });
+
+      $('btn-final-concurso').addEventListener('click', async () => {
+        const materias = $('materias').value.trim();
+        addBubble(`Matérias: ${materias || '(vazio)'}`);
+        await finalizarOnboarding({ conteudo: materias });
+      });
+
+      $('btn-final-escola').addEventListener('click', async () => {
+        const conteudo = $('conteudo').value.trim();
+        addBubble(`Assuntos: ${conteudo || '(vazio)'}`);
+        await finalizarOnboarding({ conteudo, aceitarGenerico: false });
+      });
+
+      $('btn-generico').addEventListener('click', async () => {
+        addBubble('Usuário pediu modo genérico para testar');
+        await finalizarOnboarding({ conteudo: '', aceitarGenerico: true });
+      });
+    </script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 # Amigo de Estudo (Flask)
 
-MVP backend/frontend mínimo da plataforma de estudos com IA focada em **zero decisão**.
+MVP backend/frontend da plataforma de estudos com IA focada em **zero decisão**.
 
 ## Stack
 - Python 3.11+
@@ -10,10 +10,10 @@ MVP backend/frontend mínimo da plataforma de estudos com IA focada em **zero de
 
 ## Estrutura
 - `app.py`: bootstrap HTTP
-- `routes/`: endpoints de plano, tarefas e avaliação
-- `services/`: lógica de negócio (plano, tarefas, IA e mensagens)
+- `routes/`: endpoints de onboarding, plano, tarefas e avaliação
+- `services/`: lógica de negócio (onboarding, plano, tarefas, IA e mensagens)
 - `prompts/`: instruções de personalidade do agente
-- `public/`: interface inicial extremamente simples
+- `public/`: onboarding conversacional + visão inicial de tarefas
 
 ## Rodar local
 ```bash
@@ -23,7 +23,17 @@ pip install -r requirements.txt
 python app.py
 ```
 
+## Fluxo de onboarding inteligente (2–3 etapas)
+1. Pergunta intenção: "o que tu quer estudar?"
+2. Backend detecta tipo: `concurso`, `escola` ou `outro`
+3. Coleta mínima obrigatória:
+   - concurso: pergunta se tem edital e exige matérias principais quando houver conteúdo
+   - escola/outro: exige temas; se usuário insistir sem conteúdo, permite modo genérico para teste
+4. Ao finalizar onboarding, já gera plano + tarefas do dia
+
 ## Endpoints principais
+- `POST /api/onboarding/detectar-tipo`
+- `POST /api/onboarding/finalizar`
 - `POST /api/plano/iniciar`
 - `GET /api/plano/<user_id>`
 - `POST /api/tarefas/gerar`
@@ -32,16 +42,9 @@ python app.py
 - `POST /api/tarefas/<user_id>/desempenho`
 - `GET /api/avaliacao/<user_id>/surpresa`
 
-## Comportamentos adicionados
-- Streak de estudo (`dias_consecutivos`) e cálculo de ausência (`dias_sem_estudar`).
-- Bloqueio de conclusão fora de ordem em tarefas sequenciais.
-- Feedback imediato ao concluir tarefa.
-- Mensagens adaptadas por ausência, pendências e desempenho.
-- Avaliação invisível com chance aleatória (20%) e sem repetir conteúdo recente.
-
-## Exemplo rápido
-```bash
-curl -X POST http://localhost:3000/api/plano/iniciar \
-  -H "content-type: application/json" \
-  -d '{"userId":"u1","objetivo":"concurso INSS","tempoDisponivelMin":90,"nivel":"intermediario","modo":"concurso"}'
-```
+## Comportamentos ativos
+- Streak de estudo (`dias_consecutivos`) e ausência (`dias_sem_estudar`)
+- Bloqueio de conclusão fora de ordem
+- Feedback imediato ao concluir tarefa
+- Mensagens adaptadas por ausência, pendências e desempenho
+- Avaliação invisível aleatória (20%) sem repetir conteúdo recente
