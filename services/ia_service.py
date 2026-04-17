@@ -57,15 +57,17 @@ def normalizar_lista_conteudos(raw: str) -> list[str]:
 
 
 def _fallback_conteudo(materia: str, tema: str) -> dict:
+    api_key_status = "O administrador do sistema não configurou a chave da API (OPENAI_API_KEY) no ambiente." if not os.getenv("OPENAI_API_KEY") else "Houve uma falha de conexão temporária."
     return {
         "explicacao": (
-            f"{tema} em {materia}: ideia central em linguagem simples. "
-            "Lê com calma e conecta com um exemplo do dia a dia."
+            f"Ops, parece que a inteligência artificial está indisponível no momento! "
+            f"Eu não consegui gerar a explicação real para '{tema}' em {materia}.\n\n"
+            f"⚠️ Motivo técnico: {api_key_status}"
         ),
-        "exemplo": f"Exemplo rápido: aplique {tema} para resolver um problema básico de {materia}.",
+        "exemplo": f"Exemplo: Quando a IA voltar, você verá um caso de uso real de {tema} aqui.",
         "exercicios": [
-            f"Explique com suas palavras o conceito principal de {tema}.",
-            f"Resolva 1 questão curta sobre {tema} e confira o raciocínio.",
+            f"Exercício de fallback: Escreva um pequeno resumo do que você já sabe sobre {tema}.",
+            "Pressione 'Verificar e Continuar' para avançar.",
         ],
         "origem": "fallback-local",
     }
@@ -77,12 +79,16 @@ def _chamar_ia(prompt: str) -> str | None:
         return None
 
     payload = {
-        "model": "gpt-4.1-mini",
-        "input": prompt,
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "system", "content": "Você é um professor particular focado em explicar conceitos e dar exercícios simples em JSON válido."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7,
     }
 
     req = request.Request(
-        "https://api.openai.com/v1/responses",
+        "https://api.openai.com/v1/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
@@ -94,8 +100,9 @@ def _chamar_ia(prompt: str) -> str | None:
     try:
         with request.urlopen(req, timeout=20) as response:
             data = json.loads(response.read().decode("utf-8"))
-            return data.get("output_text")
-    except (error.URLError, error.HTTPError, TimeoutError, json.JSONDecodeError):
+            return data["choices"][0]["message"]["content"]
+    except (error.URLError, error.HTTPError, TimeoutError, json.JSONDecodeError, KeyError, IndexError) as e:
+        print(f"Erro na IA: {e}")
         return None
 
 
@@ -113,19 +120,24 @@ def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
         return {**fallback, "cache": False}
 
     prompt = f"""
-Explique de forma simples:
+Explique de forma simples e direta o seguinte tópico para um aluno estudando sozinho.
+Materia: {materia}
+Tema: {tema}
 
-Tema: {tema} ({materia})
-
-Regras:
-- até 5 linhas
-- linguagem simples
-- incluir exemplo
-- incluir 2 exercícios
-- responder em JSON com chaves: explicacao, exemplo, exercicios
+Regras estritas:
+1. 'explicacao': O conceito principal com linguagem simples em até 4 parágrafos pequenos.
+2. 'exemplo': Um exemplo prático e de fácil entendimento.
+3. 'exercicios': Um array contendo EXATAMENTE 2 perguntas/exercícios diretos que façam o usuário pensar (não precisa de múltipla escolha).
+4. Responda APENAS em formato JSON válido, sem markdown markdown (```json), sem texto adicional, com chaves: "explicacao", "exemplo" e "exercicios".
 """.strip()
 
     raw = _chamar_ia(prompt)
+
+    # Limpa marcação Markdown se a API devolver (ex: ```json\n{...}\n```)
+    if raw and raw.startswith("```"):
+        raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+        raw = re.sub(r"```$", "", raw).strip()
+
     if raw:
         try:
             parsed = json.loads(raw)
@@ -135,7 +147,8 @@ Regras:
                 "exercicios": parsed.get("exercicios") or _fallback_conteudo(materia, tema)["exercicios"],
                 "origem": "ia",
             }
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
             content = _fallback_conteudo(materia, tema)
     else:
         content = _fallback_conteudo(materia, tema)
