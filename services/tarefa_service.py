@@ -1,17 +1,15 @@
+import json
 from datetime import datetime, timezone
 
-from services.db import memory, registrar_estudo
+from services.db import registrar_estudo, get_db_connection
 from services.ia_service import gerar_conteudo
 from services.node_service import feedback_conclusao
-
 
 def _hoje() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
-
 def _agora_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
 
 def _temas_padrao(materia: str) -> list[str]:
     m = materia.lower()
@@ -20,7 +18,6 @@ def _temas_padrao(materia: str) -> list[str]:
     if "portugu" in m:
         return ["interpretação", "gramática", "texto e sentido"]
     return ["fundamentos", "aplicação", "fixação"]
-
 
 def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
     hoje = _hoje()
@@ -55,18 +52,33 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
             }
         )
 
-    memory.tasks[f"{user_id}:{hoje}"] = tarefas
+    task_key = f"{user_id}:{hoje}"
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO tasks (id, user_id, data_ref, payload)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload
+            """, (task_key, user_id, hoje, json.dumps(tarefas)))
+            conn.commit()
+
     return tarefas
 
-
 def buscar_tarefas_do_dia(user_id: str, data: str | None = None) -> list[dict]:
-    chave = f"{user_id}:{data or _hoje()}"
-    return memory.tasks.get(chave, [])
+    hoje = data or _hoje()
+    task_key = f"{user_id}:{hoje}"
 
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT payload FROM tasks WHERE id = %s", (task_key,))
+            row = cur.fetchone()
+            return row["payload"] if row else []
 
 def concluir_tarefa(user_id: str, task_id: str, data: str | None = None) -> tuple[dict, int]:
-    chave = f"{user_id}:{data or _hoje()}"
-    tarefas = memory.tasks.get(chave, [])
+    hoje = data or _hoje()
+    task_key = f"{user_id}:{hoje}"
+
+    tarefas = buscar_tarefas_do_dia(user_id, data)
 
     idx = next((i for i, t in enumerate(tarefas) if t["id"] == task_id), -1)
     if idx < 0:
@@ -77,7 +89,11 @@ def concluir_tarefa(user_id: str, task_id: str, data: str | None = None) -> tupl
         return {"erro": "Conclua a tarefa anterior primeiro"}, 400
 
     tarefas[idx] = {**tarefas[idx], "status": "concluida", "concluidaEm": _agora_iso()}
-    memory.tasks[chave] = tarefas
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE tasks SET payload = %s WHERE id = %s", (json.dumps(tarefas), task_key))
+            conn.commit()
 
     metricas = registrar_estudo(user_id)
     feedback = feedback_conclusao(tarefas[idx]["ordem"], len(tarefas))
