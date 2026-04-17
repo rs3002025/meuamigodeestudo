@@ -135,7 +135,7 @@ def set_cached_content(user_id: str, materia: str, tema: str, content: dict[str,
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO content_cache (cache_key, payload)
-                VALUES (%s, %s)
+                VALUES (%s, %s::jsonb)
                 ON CONFLICT (cache_key) DO UPDATE SET payload = EXCLUDED.payload
             """, (key, json.dumps(content)))
             conn.commit()
@@ -155,6 +155,6 @@ def increment_ia_daily_count(user_id: str, day: date | None = None) -> int:
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("UPDATE users SET ia_geracoes_por_dia = %s WHERE id = %s", (json.dumps(counts), user_id))
+            cur.execute("UPDATE users SET ia_geracoes_por_dia = %s::jsonb WHERE id = %s", (json.dumps(counts), user_id))
             conn.commit()
     return atual

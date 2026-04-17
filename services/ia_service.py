@@ -79,6 +79,7 @@ def _chamar_ia(prompt: str) -> str | None:
         return None
 
     payload = {
+        # Using a reliable model as 'gpt-5.4-nano' doesn't exist
         "model": "gpt-4o-mini",
         "messages": [
             {"role": "system", "content": "Você é um professor particular focado em explicar conceitos e dar exercícios simples em JSON válido."},
