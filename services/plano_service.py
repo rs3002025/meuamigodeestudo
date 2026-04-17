@@ -1,6 +1,6 @@
+import json
 from datetime import datetime, timezone
-
-from services.db import get_user_metrics, memory
+from services.db import get_user_metrics, get_db_connection
 
 CARGA_POR_NIVEL = {
     "iniciante": 40,
@@ -8,15 +8,12 @@ CARGA_POR_NIVEL = {
     "avancado": 90,
 }
 
-
 def _agora_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
 
 def calcular_carga_diaria(tempo_disponivel_min: int, nivel: str) -> int:
     fator = CARGA_POR_NIVEL.get(nivel, 60)
     return max(20, min(tempo_disponivel_min, fator))
-
 
 def _objetivo_para_lista(objetivo: str | list[str]) -> list[str]:
     if isinstance(objetivo, list):
@@ -24,7 +21,6 @@ def _objetivo_para_lista(objetivo: str | list[str]) -> list[str]:
     if isinstance(objetivo, str) and objetivo.strip():
         return [objetivo.strip()]
     return []
-
 
 def gerar_plano_inicial(payload: dict) -> dict:
     user_id = payload["userId"]
@@ -47,17 +43,29 @@ def gerar_plano_inicial(payload: dict) -> dict:
         "atualizadoEm": _agora_iso(),
     }
 
-    memory.plans[user_id] = plano
+    # Ensure user exists
     get_user_metrics(user_id)
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO plans (user_id, payload)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET payload = EXCLUDED.payload
+            """, (user_id, json.dumps(plano)))
+            conn.commit()
+
     return plano
 
-
 def buscar_plano(user_id: str) -> dict | None:
-    return memory.plans.get(user_id)
-
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT payload FROM plans WHERE user_id = %s", (user_id,))
+            row = cur.fetchone()
+            return row["payload"] if row else None
 
 def ajustar_plano_com_desempenho(user_id: str, desempenho_dia: dict) -> dict | None:
-    plano = memory.plans.get(user_id)
+    plano = buscar_plano(user_id)
     if not plano:
         return None
 
@@ -82,8 +90,10 @@ def ajustar_plano_com_desempenho(user_id: str, desempenho_dia: dict) -> dict | N
         "atualizadoEm": _agora_iso(),
     }
 
-    memory.plans[user_id] = atualizado
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE plans SET payload = %s WHERE user_id = %s", (json.dumps(atualizado), user_id))
+            cur.execute("UPDATE users SET ultima_taxa_acerto = %s WHERE id = %s", (taxa_acerto, user_id))
+            conn.commit()
 
-    metrics = get_user_metrics(user_id)
-    metrics["ultima_taxa_acerto"] = taxa_acerto
     return atualizado
