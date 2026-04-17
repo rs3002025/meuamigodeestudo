@@ -75,16 +75,18 @@ def _fallback_conteudo(materia: str, tema: str) -> dict:
 
 def _chamar_ia(prompt: str) -> str | None:
     api_key = os.getenv("OPENAI_API_KEY")
+
     if not api_key:
         return None
 
     payload = {
         "model": "gpt-5.4-nano",
         "messages": [
-            {"role": "system", "content": "Você é um professor particular focado em explicar conceitos e dar exercícios simples em JSON válido."},
+            {"role": "system", "content": "Você é um professor particular experiente. Sua única função é retornar um JSON estrito."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
+        "response_format": {"type": "json_object"}
     }
 
     req = request.Request(
@@ -98,7 +100,8 @@ def _chamar_ia(prompt: str) -> str | None:
     )
 
     try:
-        with request.urlopen(req, timeout=20) as response:
+        # Increase timeout to 60s as some complex requests might delay
+        with request.urlopen(req, timeout=60) as response:
             data = json.loads(response.read().decode("utf-8"))
             return data["choices"][0]["message"]["content"]
     except error.HTTPError as e:
@@ -128,11 +131,15 @@ Explique de forma simples e direta o seguinte tópico para um aluno estudando so
 Materia: {materia}
 Tema: {tema}
 
-Regras estritas:
-1. 'explicacao': O conceito principal com linguagem simples em até 4 parágrafos pequenos.
-2. 'exemplo': Um exemplo prático e de fácil entendimento.
-3. 'exercicios': Um array contendo EXATAMENTE 2 perguntas/exercícios diretos que façam o usuário pensar (não precisa de múltipla escolha).
-4. Responda APENAS em formato JSON válido, sem markdown markdown (```json), sem texto adicional, com chaves: "explicacao", "exemplo" e "exercicios".
+Retorne estritamente um JSON com a exata estrutura:
+{{
+  "explicacao": "O conceito principal com linguagem simples em até 2 parágrafos pequenos.",
+  "exemplo": "Um exemplo prático e de fácil entendimento.",
+  "exercicios": [
+    "Pergunta reflexiva ou prática número 1.",
+    "Pergunta reflexiva ou prática número 2."
+  ]
+}}
 """.strip()
 
     raw = _chamar_ia(prompt)
