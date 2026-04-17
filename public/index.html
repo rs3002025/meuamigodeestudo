@@ -8,16 +8,16 @@
       @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap');
 
       :root {
-        --bg-color: #0d1117;
-        --text-main: #e6edf3;
-        --primary: #8a2be2;
-        --primary-shadow: #5c1b96;
-        --secondary: #ff7b00;
-        --secondary-shadow: #cc6200;
-        --gray: #21262d;
-        --gray-shadow: #161b22;
-        --dark-gray: #8b949e;
-        --error: #f85149;
+        --bg-color: #f8fafc;
+        --text-main: #334155;
+        --primary: #8b5cf6;
+        --primary-shadow: #7c3aed;
+        --secondary: #f97316;
+        --secondary-shadow: #ea580c;
+        --gray: #e2e8f0;
+        --gray-shadow: #cbd5e1;
+        --dark-gray: #94a3b8;
+        --error: #ef4444;
       }
 
       * { box-sizing: border-box; }
@@ -54,14 +54,15 @@
         padding: 14px;
         border: 2px solid var(--gray);
         border-radius: 12px;
-        background: #161b22;
+        background: #ffffff;
         color: var(--text-main);
         margin-bottom: 16px;
         outline: none;
         transition: border 0.2s;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
       }
       input:focus, textarea:focus { border-color: var(--secondary); }
-      label { font-weight: 700; font-size: 18px; display: block; margin-bottom: 8px; color: #c9d1d9; }
+      label { font-weight: 700; font-size: 18px; display: block; margin-bottom: 8px; color: #475569; }
 
       /* Duolingo style buttons */
       .btn {
@@ -160,7 +161,7 @@
       .task-node.locked {
         background: var(--gray);
         border-bottom: 6px solid var(--gray-shadow);
-        color: var(--dark-gray);
+        color: #ffffff;
         cursor: not-allowed;
       }
 
@@ -187,7 +188,7 @@
         font-weight: 800;
         text-align: center;
         width: 140px;
-        color: #c9d1d9;
+        color: #64748b;
       }
 
       .path-line {
@@ -241,8 +242,8 @@
       }
 
       .lesson-bubble {
-        background: var(--gray);
-        border: 2px solid var(--gray-shadow);
+        background: #ffffff;
+        border: 2px solid var(--gray);
         border-radius: 16px;
         padding: 24px;
         font-size: 18px;
@@ -250,7 +251,7 @@
         font-weight: 700;
         position: relative;
         margin-bottom: 30px;
-        box-shadow: 0 4px 0 var(--gray-shadow);
+        box-shadow: 0 4px 0 var(--gray);
         color: var(--text-main);
       }
 
@@ -262,7 +263,7 @@
         transform: translateX(-50%);
         border-width: 0 10px 10px 10px;
         border-style: solid;
-        border-color: transparent transparent var(--gray-shadow) transparent;
+        border-color: transparent transparent var(--gray) transparent;
       }
       .lesson-bubble::after {
         content: '';
@@ -272,7 +273,7 @@
         transform: translateX(-50%);
         border-width: 0 8px 8px 8px;
         border-style: solid;
-        border-color: transparent transparent var(--gray) transparent;
+        border-color: transparent transparent #ffffff transparent;
       }
 
       .lesson-badge {
