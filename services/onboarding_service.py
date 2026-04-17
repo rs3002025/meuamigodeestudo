@@ -7,7 +7,7 @@ from services.ia_service import normalizar_lista_conteudos
 def detectar_tipo_objetivo(objetivo: str) -> str:
     raw = (objetivo or "").strip().lower()
     if not raw:
-        return "outro"
+        return "escola"
 
     concurso_terms = ["concurso", "edital", "enem", "oab", "vestibular", "pm", "pc", "inss"]
     escola_terms = ["escola", "prova", "bimestre", "faculdade", "matéria", "materia"]
@@ -16,7 +16,7 @@ def detectar_tipo_objetivo(objetivo: str) -> str:
         return "concurso"
     if any(term in raw for term in escola_terms):
         return "escola"
-    return "outro"
+    return "escola"
 
 
 def _slug(text: str) -> str:
@@ -47,7 +47,7 @@ def processar_onboarding(payload: dict) -> tuple[dict | None, str | None]:
         if tem_conteudo in {"sim", "s"}:
             materias = _normalizar_conteudos(payload.get("conteudo") or "")
             if len(materias) < 1:
-                return None, "preciso pelo menos das matérias principais"
+                return None, "preciso das matérias principais"
         else:
             modo = "generico"
     else:

@@ -3,22 +3,25 @@ def gerar_mensagem_diaria(
     pendencias: int = 0,
     dias_sem_estudar: int = 0,
     dias_consecutivos: int = 0,
+    materia_do_dia: str | None = None,
 ) -> str:
+    materia = materia_do_dia or "o conteúdo de hoje"
+
     if dias_sem_estudar >= 1:
-        return "tu sumiu ontem 👀 bora voltar hoje sem drama"
+        return f"tu sumiu ontem 👀 bora voltar em {materia} sem drama"
 
     if pendencias > 0:
         if taxa_acerto < 0.6:
-            return "tu vacilou nisso, bora corrigir. faz a primeira tarefa agora e resolve"
-        return "sem pular etapa. fecha a próxima tarefa agora"
+            return f"tu vacilou em {materia}, bora corrigir agora."
+        return f"bora, hoje é {materia} — só seguir isso aqui"
 
     if taxa_acerto > 0.8 and dias_consecutivos >= 2:
-        return "boa, isso aqui fechou. hoje a gente reduz repetição e sobe nível"
+        return f"boa, {materia} fechou. hoje a gente sobe um pouco o nível"
 
     if taxa_acerto > 0.8:
-        return "boa, isso aqui fechou. segue pro próximo bloco"
+        return f"boa, {materia} fechou. segue pro próximo bloco"
 
-    return "faz isso agora e resolve"
+    return f"faz {materia} agora e resolve"
 
 
 def feedback_conclusao(ordem_tarefa: int, total: int) -> str:

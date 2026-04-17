@@ -32,11 +32,13 @@ def finalizar():
     tarefas = gerar_tarefas_diarias(plano_payload["userId"], plano)
 
     metrics = get_user_metrics(plano_payload["userId"])
+    materia_do_dia = tarefas[0]["materia"] if tarefas else None
     mensagem = gerar_mensagem_diaria(
         taxa_acerto=float(metrics.get("ultima_taxa_acerto") or 0.7),
         pendencias=len(tarefas),
         dias_sem_estudar=int(metrics.get("dias_sem_estudar") or 0),
         dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
+        materia_do_dia=materia_do_dia,
     )
 
     onboarding_meta = {

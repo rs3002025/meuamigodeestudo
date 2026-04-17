@@ -18,16 +18,28 @@ def calcular_carga_diaria(tempo_disponivel_min: int, nivel: str) -> int:
     return max(20, min(tempo_disponivel_min, fator))
 
 
+def _objetivo_para_lista(objetivo: str | list[str]) -> list[str]:
+    if isinstance(objetivo, list):
+        return [str(o).strip() for o in objetivo if str(o).strip()]
+    if isinstance(objetivo, str) and objetivo.strip():
+        return [objetivo.strip()]
+    return []
+
+
 def gerar_plano_inicial(payload: dict) -> dict:
     user_id = payload["userId"]
     tempo_disponivel_min = int(payload.get("tempoDisponivelMin", 60))
     nivel = payload.get("nivel", "intermediario")
 
+    materias = payload.get("materias") or _objetivo_para_lista(payload.get("objetivo"))
+
     plano = {
         "userId": user_id,
         "objetivo": payload["objetivo"],
+        "materias": materias,
         "nivel": nivel,
-        "modo": payload.get("modo", "concurso"),
+        "modo": payload.get("modo", "personalizado"),
+        "tipo": payload.get("tipo", "escola"),
         "cargaDiaria": calcular_carga_diaria(tempo_disponivel_min, nivel),
         "focoAtual": ["teoria", "questoes", "revisao"],
         "versao": 1,

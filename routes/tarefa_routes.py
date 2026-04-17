@@ -9,6 +9,13 @@ from services.tarefa_service import buscar_tarefas_do_dia, concluir_tarefa, gera
 tarefa_bp = Blueprint("tarefas", __name__)
 
 
+def _materia_do_dia(tarefas: list[dict]) -> str | None:
+    if not tarefas:
+        return None
+    pendente = next((t for t in tarefas if t.get("status") != "concluida"), tarefas[0])
+    return pendente.get("materia")
+
+
 @tarefa_bp.post("/gerar")
 def gerar_tarefas():
     body = request.get_json(silent=True) or {}
@@ -25,6 +32,7 @@ def gerar_tarefas():
         pendencias=len(tarefas),
         dias_sem_estudar=int(metrics.get("dias_sem_estudar") or 0),
         dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
+        materia_do_dia=_materia_do_dia(tarefas),
     )
 
     avaliacao_surpresa = talvez_gerar_avaliacao_invisivel(
@@ -50,6 +58,7 @@ def tarefas_hoje(user_id: str):
         pendencias=pendencias,
         dias_sem_estudar=int(metrics.get("dias_sem_estudar") or 0),
         dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
+        materia_do_dia=_materia_do_dia(tarefas),
     )
     return jsonify({"mensagem": mensagem, "tarefas": tarefas, "streak": metrics.get("dias_consecutivos", 0)})
 

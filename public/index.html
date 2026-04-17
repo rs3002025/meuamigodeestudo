@@ -5,104 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amigo de Estudo</title>
     <style>
-      body {
-        margin: 0;
-        font-family: Inter, Arial, sans-serif;
-        background: #0f172a;
-        color: #f8fafc;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-      }
-      .card {
-        width: min(720px, 94vw);
-        background: #111827;
-        border: 1px solid #334155;
-        border-radius: 16px;
-        padding: 22px;
-      }
-      .muted { color: #cbd5e1; }
+      body { margin: 0; font-family: Inter, Arial, sans-serif; background: #0f172a; color: #f8fafc; min-height: 100vh; display: grid; place-items: center; }
+      .card { width: min(760px, 94vw); background: #111827; border: 1px solid #334155; border-radius: 16px; padding: 22px; }
       .hidden { display: none; }
+      .muted { color: #cbd5e1; }
       label { display: block; margin-bottom: 8px; }
-      input, button, textarea {
-        font: inherit;
-      }
-      input, textarea {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #334155;
-        background: #0b1220;
-        color: #f8fafc;
-        margin-bottom: 10px;
-      }
-      .btn {
-        padding: 10px 14px;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-      }
+      input, textarea, button { font: inherit; }
+      input, textarea { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid #334155; background: #0b1220; color: #f8fafc; margin-bottom: 10px; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; }
+      .btn { padding: 10px 14px; border: none; border-radius: 10px; cursor: pointer; }
       .btn.primary { background: #3b82f6; color: #fff; }
       .btn.secondary { background: #1f2937; color: #fff; border: 1px solid #334155; }
-      .row { display: flex; gap: 10px; flex-wrap: wrap; }
-      .step { margin-bottom: 14px; }
-      .bubble {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 10px;
-        margin: 8px 0;
-      }
-      ul { padding-left: 20px; }
+      .bubble { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; margin: 8px 0; }
+      .task { padding: 10px; border: 1px solid #334155; border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+      .task.done { opacity: 0.65; text-decoration: line-through; }
       .error { color: #fda4af; }
+      .content-box { border: 1px solid #334155; border-radius: 12px; padding: 14px; background: #0b1220; }
     </style>
   </head>
   <body>
     <main class="card">
-      <h1>Amigo de Estudo 🧠</h1>
-      <p class="muted">Onboarding rápido: 2–3 respostas e já começa as tarefas.</p>
-
-      <section id="onboarding">
+      <section id="passos">
+        <h1>Amigo de Estudo 🧠</h1>
         <div id="chat"></div>
 
-        <div id="step1" class="step">
+        <div id="p1">
           <label for="objetivo">o que tu quer estudar?</label>
-          <input id="objetivo" type="text" placeholder="ex: concurso INSS, prova de matemática" />
-          <button class="btn primary" id="btn-step1">Continuar</button>
+          <input id="objetivo" type="text" placeholder="ex: concurso INSS ou prova de matemática" />
+          <button id="p1-next" class="btn primary">continuar</button>
         </div>
 
-        <div id="step2-concurso" class="step hidden">
-          <label>tu já tem o conteúdo do edital?</label>
+        <div id="p2-concurso" class="hidden">
+          <label>tu tem o conteúdo do edital?</label>
           <div class="row">
-            <button class="btn secondary" data-edit="sim">sim</button>
-            <button class="btn secondary" data-edit="nao">não tenho</button>
+            <button class="btn secondary" data-edital="sim">sim</button>
+            <button class="btn secondary" data-edital="nao">não tenho</button>
           </div>
         </div>
 
-        <div id="step3-materias" class="step hidden">
-          <label for="materias">manda as matérias principais (separadas por vírgula)</label>
+        <div id="p3-concurso" class="hidden">
+          <label for="materias">manda as matérias principais (vírgula)</label>
           <textarea id="materias" rows="2" placeholder="português, matemática, raciocínio lógico"></textarea>
-          <button class="btn primary" id="btn-final-concurso">Gerar plano</button>
+          <button id="final-concurso" class="btn primary">gerar meu estudo</button>
         </div>
 
-        <div id="step2-escola" class="step hidden">
-          <label for="conteudo">quais assuntos vão cair?</label>
-          <textarea id="conteudo" rows="2" placeholder="ex: função do 2º grau, geometria, revolução francesa"></textarea>
+        <div id="p2-escola" class="hidden">
+          <label for="assuntos">quais assuntos vão cair?</label>
+          <textarea id="assuntos" rows="2" placeholder="ex: frações, interpretação de texto, revolução francesa"></textarea>
           <div class="row">
-            <button class="btn primary" id="btn-final-escola">Gerar plano</button>
-            <button class="btn secondary" id="btn-generico">Quero só testar no genérico</button>
+            <button id="final-escola" class="btn primary">gerar meu estudo</button>
+            <button id="modo-generico" class="btn secondary">quero testar genérico</button>
           </div>
         </div>
 
         <p id="erro" class="error"></p>
       </section>
 
-      <section id="resultado" class="hidden">
-        <h2>Hoje tu vai fazer isso:</h2>
-        <p id="mensagem" class="bubble"></p>
+      <section id="estudo" class="hidden">
+        <h2 id="mensagem"></h2>
         <p id="aviso" class="muted"></p>
-        <ul id="tarefas"></ul>
+        <div id="lista"></div>
+        <button id="concluir-proxima" class="btn primary">concluir próxima</button>
+      </section>
+
+      <section id="detalhe" class="hidden">
+        <h2 id="titulo-detalhe"></h2>
+        <div class="content-box">
+          <p id="explicacao"></p>
+          <p><strong>Exemplo:</strong> <span id="exemplo"></span></p>
+          <p><strong>Exercícios:</strong></p>
+          <ul id="exercicios"></ul>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="voltar" class="btn secondary">voltar</button>
+        </div>
       </section>
     </main>
 
@@ -110,64 +86,57 @@
       const state = {
         userId: localStorage.getItem('amigo_user_id') || `u-${Date.now()}`,
         objetivo: '',
-        tipo: 'outro',
+        tipo: 'escola',
         temConteudo: '',
+        tarefas: [],
       };
       localStorage.setItem('amigo_user_id', state.userId);
 
       const $ = (id) => document.getElementById(id);
+      const showError = (msg='') => $('erro').textContent = msg;
 
-      function addBubble(text) {
-        const el = document.createElement('p');
-        el.className = 'bubble';
-        el.textContent = text;
-        $('chat').appendChild(el);
-      }
-
-      function showError(msg = '') {
-        $('erro').textContent = msg;
+      function bubble(text) {
+        const p = document.createElement('p');
+        p.className = 'bubble';
+        p.textContent = text;
+        $('chat').appendChild(p);
       }
 
       async function post(url, payload) {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        const res = await fetch(url, { method: 'POST', headers: { 'content-type':'application/json' }, body: JSON.stringify(payload) });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.erro || 'erro ao processar');
+        if (!res.ok) throw new Error(data.erro || 'deu erro');
         return data;
       }
 
-      async function detectarTipo() {
-        showError('');
-        const objetivo = $('objetivo').value.trim();
-        if (!objetivo) {
-          showError('me diz o que tu quer estudar');
-          return;
-        }
-
-        state.objetivo = objetivo;
-        addBubble(`Objetivo: ${objetivo}`);
-
-        try {
-          const data = await post('/api/onboarding/detectar-tipo', { objetivo });
-          state.tipo = data.tipo;
-
-          $('step1').classList.add('hidden');
-          if (state.tipo === 'concurso') {
-            $('step2-concurso').classList.remove('hidden');
-          } else {
-            $('step2-escola').classList.remove('hidden');
-          }
-        } catch (e) {
-          showError(e.message);
-        }
+      function renderTarefas() {
+        const div = $('lista');
+        div.innerHTML = '';
+        state.tarefas.forEach((t) => {
+          const el = document.createElement('div');
+          el.className = `task ${t.status === 'concluida' ? 'done' : ''}`;
+          el.textContent = `${t.ordem}. ${t.descricao}`;
+          el.onclick = () => abrirConteudo(t);
+          div.appendChild(el);
+        });
       }
 
-      async function finalizarOnboarding(extra = {}) {
-        showError('');
+      function abrirConteudo(tarefa) {
+        $('estudo').classList.add('hidden');
+        $('detalhe').classList.remove('hidden');
+        $('titulo-detalhe').textContent = `${tarefa.materia} — ${tarefa.tema}`;
+        $('explicacao').textContent = tarefa.conteudo.explicacao;
+        $('exemplo').textContent = tarefa.conteudo.exemplo;
+        $('exercicios').innerHTML = '';
+        (tarefa.conteudo.exercicios || []).forEach((e) => {
+          const li = document.createElement('li');
+          li.textContent = e;
+          $('exercicios').appendChild(li);
+        });
+      }
 
+      async function finalizar(extra) {
+        showError('');
         try {
           const data = await post('/api/onboarding/finalizar', {
             userId: state.userId,
@@ -176,56 +145,65 @@
             temConteudo: state.temConteudo,
             ...extra,
           });
+          state.tarefas = data.tarefas;
 
-          $('onboarding').classList.add('hidden');
-          $('resultado').classList.remove('hidden');
+          $('passos').classList.add('hidden');
+          $('detalhe').classList.add('hidden');
+          $('estudo').classList.remove('hidden');
           $('mensagem').textContent = data.mensagem;
           $('aviso').textContent = data.onboarding.aviso || '';
-
-          const ul = $('tarefas');
-          ul.innerHTML = '';
-          data.tarefas.forEach((task) => {
-            const li = document.createElement('li');
-            li.textContent = `${task.ordem}. ${task.titulo}`;
-            ul.appendChild(li);
-          });
+          renderTarefas();
         } catch (e) {
           showError(e.message);
         }
       }
 
-      $('btn-step1').addEventListener('click', detectarTipo);
+      $('p1-next').onclick = async () => {
+        showError('');
+        state.objetivo = $('objetivo').value.trim();
+        if (!state.objetivo) return showError('me diz o que tu quer estudar');
 
-      document.querySelectorAll('[data-edit]').forEach((btn) => {
-        btn.addEventListener('click', async (event) => {
-          state.temConteudo = event.target.getAttribute('data-edit');
-          addBubble(`Edital: ${state.temConteudo === 'sim' ? 'sim' : 'não tenho'}`);
+        bubble(`Objetivo: ${state.objetivo}`);
+        try {
+          const data = await post('/api/onboarding/detectar-tipo', { objetivo: state.objetivo });
+          state.tipo = data.tipo;
+          $('p1').classList.add('hidden');
+          if (state.tipo === 'concurso') $('p2-concurso').classList.remove('hidden');
+          else $('p2-escola').classList.remove('hidden');
+        } catch (e) {
+          showError(e.message);
+        }
+      };
 
-          $('step2-concurso').classList.add('hidden');
-          if (state.temConteudo === 'sim') {
-            $('step3-materias').classList.remove('hidden');
-          } else {
-            await finalizarOnboarding({ aceitarGenerico: true, conteudo: '' });
-          }
-        });
+      document.querySelectorAll('[data-edital]').forEach((btn) => {
+        btn.onclick = async (ev) => {
+          state.temConteudo = ev.target.getAttribute('data-edital');
+          $('p2-concurso').classList.add('hidden');
+          if (state.temConteudo === 'sim') $('p3-concurso').classList.remove('hidden');
+          else await finalizar({ aceitarGenerico: true, conteudo: '' });
+        };
       });
 
-      $('btn-final-concurso').addEventListener('click', async () => {
-        const materias = $('materias').value.trim();
-        addBubble(`Matérias: ${materias || '(vazio)'}`);
-        await finalizarOnboarding({ conteudo: materias });
-      });
+      $('final-concurso').onclick = () => finalizar({ conteudo: $('materias').value.trim() });
+      $('final-escola').onclick = () => finalizar({ conteudo: $('assuntos').value.trim(), aceitarGenerico: false });
+      $('modo-generico').onclick = () => finalizar({ conteudo: '', aceitarGenerico: true });
 
-      $('btn-final-escola').addEventListener('click', async () => {
-        const conteudo = $('conteudo').value.trim();
-        addBubble(`Assuntos: ${conteudo || '(vazio)'}`);
-        await finalizarOnboarding({ conteudo, aceitarGenerico: false });
-      });
+      $('concluir-proxima').onclick = async () => {
+        const proxima = state.tarefas.find((t) => t.status !== 'concluida');
+        if (!proxima) return;
+        try {
+          const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: proxima.id });
+          state.tarefas = data.tarefas;
+          renderTarefas();
+        } catch (e) {
+          showError(e.message);
+        }
+      };
 
-      $('btn-generico').addEventListener('click', async () => {
-        addBubble('Usuário pediu modo genérico para testar');
-        await finalizarOnboarding({ conteudo: '', aceitarGenerico: true });
-      });
+      $('voltar').onclick = () => {
+        $('detalhe').classList.add('hidden');
+        $('estudo').classList.remove('hidden');
+      };
     </script>
   </body>
 </html>

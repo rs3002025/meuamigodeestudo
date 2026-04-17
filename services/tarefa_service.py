@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from services.db import memory, registrar_estudo
+from services.ia_service import gerar_conteudo
 from services.node_service import feedback_conclusao
 
 
@@ -12,43 +13,47 @@ def _agora_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def minutos_por_bloco(carga_diaria: int) -> dict:
-    teoria = round(carga_diaria * 0.4)
-    questoes = round(carga_diaria * 0.4)
-    revisao = max(10, carga_diaria - teoria - questoes)
-    return {"teoria": teoria, "questoes": questoes, "revisao": revisao}
+def _temas_padrao(materia: str) -> list[str]:
+    m = materia.lower()
+    if "matem" in m:
+        return ["frações", "equações", "problemas práticos"]
+    if "portugu" in m:
+        return ["interpretação", "gramática", "texto e sentido"]
+    return ["fundamentos", "aplicação", "fixação"]
 
 
 def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
     hoje = _hoje()
-    blocos = minutos_por_bloco(plano["cargaDiaria"])
+    materias = plano.get("materias") or []
 
-    tarefas = [
-        {
-            "id": f"{hoje}-1",
-            "ordem": 1,
-            "tipo": "estudo",
-            "titulo": f"Bloco de teoria ({blocos['teoria']} min)",
-            "status": "pendente",
-            "podePular": False,
-        },
-        {
-            "id": f"{hoje}-2",
-            "ordem": 2,
-            "tipo": "questoes",
-            "titulo": f"Questões guiadas ({blocos['questoes']} min)",
-            "status": "pendente",
-            "podePular": False,
-        },
-        {
-            "id": f"{hoje}-3",
-            "ordem": 3,
-            "tipo": "revisao",
-            "titulo": f"Revisão ativa ({blocos['revisao']} min)",
-            "status": "pendente",
-            "podePular": False,
-        },
-    ]
+    if not materias:
+        objetivo = plano.get("objetivo")
+        materias = objetivo if isinstance(objetivo, list) else [str(objetivo)]
+
+    while len(materias) < 3:
+        materias.append(materias[-1] if materias else "estudos gerais")
+
+    tipos = ["teoria", "questoes", "revisao"]
+    tarefas: list[dict] = []
+
+    for idx in range(3):
+        materia = materias[idx % len(materias)]
+        tema = _temas_padrao(materia)[idx % 3]
+        conteudo = gerar_conteudo(user_id, materia, tema)
+
+        tarefas.append(
+            {
+                "id": f"{hoje}-{idx + 1}",
+                "ordem": idx + 1,
+                "tipo": tipos[idx],
+                "materia": materia,
+                "tema": tema,
+                "descricao": f"{materia} — {tema} ({tipos[idx]})",
+                "conteudo": conteudo,
+                "status": "pendente",
+                "podePular": False,
+            }
+        )
 
     memory.tasks[f"{user_id}:{hoje}"] = tarefas
     return tarefas

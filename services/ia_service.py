@@ -1,7 +1,19 @@
+import json
+import os
 import random
 import re
 import unicodedata
 from datetime import datetime, timezone
+from urllib import error, request
+
+from services.db import (
+    get_cached_content,
+    get_ia_daily_count,
+    increment_ia_daily_count,
+    set_cached_content,
+)
+
+FREE_DAILY_LIMIT = 3
 
 
 def _titulo(txt: str) -> str:
@@ -42,6 +54,95 @@ def normalizar_lista_conteudos(raw: str) -> list[str]:
         if normalized_item and normalized_item not in normalized:
             normalized.append(normalized_item)
     return normalized
+
+
+def _fallback_conteudo(materia: str, tema: str) -> dict:
+    return {
+        "explicacao": (
+            f"{tema} em {materia}: ideia central em linguagem simples. "
+            "Lê com calma e conecta com um exemplo do dia a dia."
+        ),
+        "exemplo": f"Exemplo rápido: aplique {tema} para resolver um problema básico de {materia}.",
+        "exercicios": [
+            f"Explique com suas palavras o conceito principal de {tema}.",
+            f"Resolva 1 questão curta sobre {tema} e confira o raciocínio.",
+        ],
+        "origem": "fallback-local",
+    }
+
+
+def _chamar_ia(prompt: str) -> str | None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+
+    payload = {
+        "model": "gpt-4.1-mini",
+        "input": prompt,
+    }
+
+    req = request.Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(req, timeout=20) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data.get("output_text")
+    except (error.URLError, error.HTTPError, TimeoutError, json.JSONDecodeError):
+        return None
+
+
+def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
+    cached = get_cached_content(user_id, materia, tema)
+    if cached:
+        return {**cached, "cache": True}
+
+    if get_ia_daily_count(user_id) >= FREE_DAILY_LIMIT:
+        fallback = {
+            **_fallback_conteudo(materia, tema),
+            "aviso": "limite diário do plano free atingido (3 conteúdos).",
+        }
+        set_cached_content(user_id, materia, tema, fallback)
+        return {**fallback, "cache": False}
+
+    prompt = f"""
+Explique de forma simples:
+
+Tema: {tema} ({materia})
+
+Regras:
+- até 5 linhas
+- linguagem simples
+- incluir exemplo
+- incluir 2 exercícios
+- responder em JSON com chaves: explicacao, exemplo, exercicios
+""".strip()
+
+    raw = _chamar_ia(prompt)
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            content = {
+                "explicacao": parsed.get("explicacao") or _fallback_conteudo(materia, tema)["explicacao"],
+                "exemplo": parsed.get("exemplo") or _fallback_conteudo(materia, tema)["exemplo"],
+                "exercicios": parsed.get("exercicios") or _fallback_conteudo(materia, tema)["exercicios"],
+                "origem": "ia",
+            }
+        except json.JSONDecodeError:
+            content = _fallback_conteudo(materia, tema)
+    else:
+        content = _fallback_conteudo(materia, tema)
+
+    increment_ia_daily_count(user_id)
+    set_cached_content(user_id, materia, tema, content)
+    return {**content, "cache": False}
 
 
 def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
