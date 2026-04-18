@@ -568,7 +568,17 @@
 
           const label = document.createElement('div');
           label.className = 'task-label';
-          label.innerHTML = `${task.materia}<br><span style="font-weight:400">${task.tema}</span>`;
+
+          let title = task.materia;
+          let sub = task.descricao || task.tema;
+
+          // Se o nome do tema e da materia sao parecidos/repetidos, mostra so um com enfase
+          if (title.toLowerCase() === sub.toLowerCase() || sub.toLowerCase().startsWith(title.toLowerCase())) {
+              label.innerHTML = `<span style="font-weight:800; color: #475569;">${sub}</span>`;
+          } else {
+              label.innerHTML = `${title}<br><span style="font-weight:400; color: #64748b;">${sub}</span>`;
+          }
+
           wrapper.appendChild(label);
 
           if (idx < state.tarefas.length - 1) {
@@ -645,7 +655,9 @@
         const totalSteps = 3 + exercicios.length;
 
         // Update Progress Bar
-        const progPct = ((state.lessonStep + 1) / totalSteps) * 100;
+        // Removes Reference Screen -> 2 fixed screens (Explicacao, Exemplo) + exercises
+        const actualTotalSteps = 2 + exercicios.length;
+        const progPct = ((state.lessonStep + 1) / actualTotalSteps) * 100;
         $('lesson-progress').style.width = `${progPct}%`;
 
         const badge = $('lesson-badge');
@@ -681,7 +693,7 @@
           // Tratando quebra de linha do banco para a div principal com estilos legíveis
           contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(exercicios[exIdx])}</div>`;
 
-          if (state.lessonStep === totalSteps - 1) {
+          if (state.lessonStep === actualTotalSteps - 1) {
             btn.textContent = 'Verificar e Concluir';
           } else {
             btn.textContent = 'Verificar e Continuar';
@@ -726,12 +738,12 @@
                  contentDiv.appendChild(feedbackDiv);
 
                  if(evaluation.correto) {
-                     btn.textContent = state.lessonStep === totalSteps - 1 ? 'Concluir' : 'Continuar';
+                     btn.textContent = state.lessonStep === actualTotalSteps - 1 ? 'Concluir' : 'Continuar';
                      btn.disabled = false;
                      btn.onclick = advanceLessonFlow;
                  } else {
                      // Permite avançar mesmo errando
-                     btn.textContent = state.lessonStep === totalSteps - 1 ? 'Concluir Mesmo Assim' : 'Continuar Mesmo Assim';
+                     btn.textContent = state.lessonStep === actualTotalSteps - 1 ? 'Concluir Mesmo Assim' : 'Continuar Mesmo Assim';
                      btn.disabled = false;
                      btn.onclick = advanceLessonFlow;
 
@@ -754,24 +766,17 @@
           // Pula a função onclick de avanço padrão, usando a nossa acima para o step de exercício
           return;
         }
-        else {
-          // Último step: Referências e Mergulho Profundo
-          interactiveArea.classList.add('hidden');
-          badge.textContent = 'Curadoria do Mentor 🔎';
-          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.referencias || "### Fontes\nSem referências adicionais.")}</div>`;
-          btn.textContent = 'Concluir';
-        }
 
         btn.onclick = advanceLessonFlow;
       }
 
       async function advanceLessonFlow() {
           const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-          const totalSteps = 3 + exerciciosCount; // Explicacao(0), Exemplo(1), Exercicios(2..N+1), Referencias(N+2)
+          const actualTotalSteps = 2 + exerciciosCount; // Explicacao(0), Exemplo(1), Exercicios(2..N+1)
           const btn = $('btn-lesson-action');
           $('err-lesson').textContent = '';
 
-          if (state.lessonStep >= totalSteps - 1) {
+          if (state.lessonStep >= actualTotalSteps - 1) {
               try {
                 btn.textContent = 'Concluindo...'; btn.disabled = true;
                 const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: state.lessonActive.id });
