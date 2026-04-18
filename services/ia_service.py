@@ -124,7 +124,7 @@ def gerar_conteudo(user_id: str, materia: str, tema: str, foco_delimitado: str =
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é um professor particular ensinando de forma clara e direta.
+    prompt = f"""Atue como um Mestre Didático: um professor particular brilhante, incrivelmente didático e que domina a arte de ensinar.
 
 Matéria: {materia}
 Tema: {tema}
@@ -132,32 +132,34 @@ Foco Específico da Aula: {foco_delimitado}
 
 REGRA PRINCIPAL:
 - Ensine SOMENTE o tema informado e restrito ao "Foco Específico da Aula".
-- NÃO explique conceitos mais básicos
-- NÃO amplie o assunto, não ensine os passos seguintes
+- NÃO amplie o assunto, não ensine os passos seguintes, mantenha-se estritamente no escopo da aula.
 
 Estrutura obrigatória:
-1) Explicação direta do tema
-2) Como funciona
-3) Exemplo
-4) 2 ou 3 exercícios
+1) Explicação da teoria
+2) Como funciona na prática
+3) Exemplos resolvidos PASSO A PASSO
+4) Controle de Qualidade: Antes de finalizar a explicação, você deve agir como auditor e ter certeza de que ensinou de forma que uma pessoa com dificuldade entenderia 100%, sem ser vago ou incompleto.
 
 Regras de Formatação (MUITO IMPORTANTE):
-- Use Markdown rico.
-- Faça parágrafos curtos e pule linhas entre eles.
-- Use cabeçalhos (###), negrito (**texto**) e bullet points para não gerar blocos maciços e confusos de texto.
+- Use Markdown rico (cabeçalhos, negrito, itálico, listas, emojis).
+- Quebre muito bem os parágrafos. NÃO construa blocos gigantes e maciços de texto.
+- Crie um visual agradável para leitura em celular.
 
 Regras Didáticas:
-- linguagem simples
-- sem linguagem acadêmica
-- sem fugir do tema
-- não ser superficial
-- não ser excessivamente longo
-- não dar resposta dos exercícios (NUNCA coloque a resposta ou dicas da resposta entre parênteses)
+- Linguagem absurdamente simples, acessível e natural.
+- SEM jargões acadêmicos complicados.
+- PROFUNDIDADE SEM COMPLEXIDADE: Fale simples, mas não seja vago. Cubra o conteúdo necessário com maestria.
+- Durante a explicação (no JSON de 'explicacao'), insira pequenos exemplos práticos e resolvidos passo a passo para ilustrar a teoria enquanto você ensina.
+
+Exercícios (Regras):
+- Formule 2 ou 3 exercícios criativos.
+- VARIE OS FORMATOS: Crie um exercício de múltipla escolha (sem mostrar o gabarito), outro aberto, e outro como desafio prático ou de verdadeiro/falso.
+- NUNCA dê as respostas ou dicas das respostas no enunciado.
 
 Retorne ESTRITAMENTE em JSON:
 {{
-  "explicacao": "Sua explicação detalhada, linda e muito bem formatada em Markdown, juntamente com 'como funciona'. Use quebras de linha e emojis.",
-  "exemplo": "Um exemplo claro e aplicável, formatado em Markdown.",
+  "explicacao": "A explicação completa, amigável, profunda (mas simples), bem espaçada e com exemplos passo a passo.",
+  "exemplo": "Um grande exemplo real aplicado ou analogia final que sela o conhecimento.",
   "exercicios": ["...", "..."]
 }}
 """
