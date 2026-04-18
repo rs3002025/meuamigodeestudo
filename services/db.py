@@ -52,6 +52,7 @@ def init_db():
                     payload JSONB NOT NULL
                 )
             """)
+            cur.execute("TRUNCATE TABLE content_cache;")
         conn.commit()
 
 # Initialize DB on import

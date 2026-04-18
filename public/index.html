@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amigo de Estudo</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap');
 
@@ -304,7 +305,33 @@
       .row { display: flex; gap: 10px; }
       .col { flex: 1; }
 
+
+      .markdown-body {
+        font-family: inherit;
+        line-height: 1.6;
+        color: #333;
+      }
+      .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+        margin-top: 1em;
+        margin-bottom: 0.5em;
+        color: #222;
+      }
+      .markdown-body p {
+        margin-bottom: 1em;
+      }
+      .markdown-body ul, .markdown-body ol {
+        margin-bottom: 1em;
+        padding-left: 1.5em;
+      }
+      .markdown-body li {
+        margin-bottom: 0.5em;
+      }
+      .markdown-body strong {
+        font-weight: 600;
+        color: #000;
+      }
     </style>
+
   </head>
   <body>
     <div class="app-container">
@@ -622,13 +649,13 @@
         if (state.lessonStep === 0) {
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Conceito Novo';
-          contentDiv.innerHTML = `<p id="lesson-text">${conteudo.explicacao.replace(/\n/g, '<br>')}</p>`;
+          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.explicacao)}</div>`;
           btn.textContent = 'Entendi';
         }
         else if (state.lessonStep === 1) {
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Exemplo Prático';
-          contentDiv.innerHTML = `<p id="lesson-text">${conteudo.exemplo.replace(/\n/g, '<br>')}</p>`;
+          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.exemplo)}</div>`;
           btn.textContent = 'Continuar';
         }
         else {
@@ -639,8 +666,7 @@
           badge.textContent = `Exercício ${exIdx + 1} de ${exercicios.length}`;
 
           // Tratando quebra de linha do banco para a div principal com estilos legíveis
-          const formattedText = exercicios[exIdx].replace(/\n/g, '<br>');
-          contentDiv.innerHTML = `<p id="lesson-text">${formattedText}</p>`;
+          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(exercicios[exIdx])}</div>`;
 
           if (state.lessonStep === totalSteps - 1) {
             btn.textContent = 'Verificar e Concluir';
