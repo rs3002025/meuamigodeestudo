@@ -124,22 +124,26 @@ def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""
-Você é um professor particular focado em Micro-learning (ensino em pílulas).
+    prompt = f"""Você é um professor particular focado em Micro-learning (ensino em pílulas).
 Ensine o seguinte tópico para um aluno que está estudando sozinho.
 Materia: {materia}
 Tema: {tema}
 
+IMPORTANTE:
+1. Foco TOTAL no Tema solicitado. Se for "Função de 2º Grau", ensine APENAS 2º grau (não ensine 1º grau).
+2. O conteúdo deve ser rico, detalhado e aprofundado, mas fácil de ler.
+3. Use formatação Markdown ricamente: use cabeçalhos (###), negrito (**texto**), listas e emojis para criar um visual muito profissional e organizado.
+4. NAS PERGUNTAS/EXERCÍCIOS, NUNCA inclua a resposta ou dicas da resposta entre parênteses. Apenas a pergunta limpa.
+
 Retorne estritamente um JSON com a exata estrutura e regras abaixo:
 {{
-  "explicacao": "Um texto EXTREMAMENTE visual e agradável de ler. Use quebras de linha (\\n), emojis e bullet points. Introduza o tema e liste 3 fatos importantes de forma pontual e didática.",
-  "exemplo": "Uma analogia incrível e divertida com a vida real (ex: compras, cotidiano, jogos) para fixar o conceito, separada em pequenos parágrafos.",
+  "explicacao": "Uma explicação profunda e detalhada em Markdown. Crie uma introdução clara, liste fatos cruciais com bullet points e aprofunde o conceito com exemplos textuais. Faça um visual atraente e bem estruturado.",
+  "exemplo": "Uma analogia rica, incrível e divertida com a vida real (ex: cotidiano, profissões, jogos) explicada em múltiplos parágrafos bem escritos com formatação Markdown.",
   "exercicios": [
-    "Uma pergunta que faça o aluno pensar e digitar a resposta com as próprias palavras.",
-    "Uma situação-problema onde ele precise aplicar a teoria ensinada."
+    "Uma pergunta direta e limpa para o aluno digitar a resposta com as próprias palavras. (NUNCA coloque a resposta entre parênteses)",
+    "Uma situação-problema desafiadora onde ele precise aplicar a teoria. (NUNCA coloque a resposta entre parênteses)"
   ]
-}}
-""".strip()
+}}"""
 
     raw, erro_tecnico = _chamar_ia(prompt)
 
@@ -189,19 +193,20 @@ def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
 
 
 def avaliar_resposta_exercicio(tema: str, enunciado: str, resposta_usuario: str) -> dict:
-    prompt = f"""
-Atuando como um professor avaliando a resposta de um aluno:
+    prompt = f"""Atuando como um professor avaliando a resposta de um aluno:
 Tema da Aula: {tema}
 Pergunta Feita: {enunciado}
 Resposta do Aluno: {resposta_usuario}
 
-Sua tarefa é ler a resposta do aluno e avaliá-corretamente se ela demonstra compreensão do conceito. Mesmo que seja informal, se a lógica estiver correta, considere aprovado.
+Sua tarefa é ler a resposta e avaliar se demonstra compreensão.
+IMPORTANTE: Use o tom de "parceiro de estudos", falando diretamente com o aluno em SEGUNDA PESSOA (você). NUNCA fale em terceira pessoa (ex: "o aluno acertou").
+Diga algo como: "Muito bem, você pegou a ideia!" ou "Você quase lá, mas lembre-se que...".
+
 Retorne ESTRITAMENTE o formato JSON a seguir:
 {{
   "correto": true ou false (boolean),
-  "feedback": "Um parágrafo curto (até 2 frases) explicando por que a resposta do aluno está certa ou como ele poderia melhorar caso tenha errado. Seja muito encorajador e amigável."
-}}
-""".strip()
+  "feedback": "Um parágrafo curto (1 ou 2 frases) explicando por que VOCÊ acertou ou como VOCÊ poderia melhorar caso tenha errado. Seja direto, íntimo e muito encorajador."
+}}"""
 
     raw, _ = _chamar_ia(prompt)
 
