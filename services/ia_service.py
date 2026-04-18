@@ -142,9 +142,9 @@ Estrutura obrigatória:
 4) 2 ou 3 exercícios (varie os formatos: ex. aberta, múltipla escolha, verdadeiro/falso. Nunca dê a resposta no enunciado)
 
 Regras:
-- Linguagem simples, sem ser superficial, mas acessível e natural.
-- Sem linguagem acadêmica ou jargões complicados.
-- Sem fugir do tema e sem introduções amplas ou enrolações.
+- Linguagem simples, direto ao ponto. Seja como um site de resumos escolares (ex: Brasil Escola).
+- NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas (ex: não ensine forma canônica de equações, foque na resolução clássica e prática).
+- Sem fugir do tema e sem introduções amplas ou enrolações genéricas.
 - Use formatação Markdown (negrito, listas, quebras de parágrafo).
 - IMPORTANTE PARA MATEMÁTICA: Você DEVE escrever TODAS as fórmulas, equações e variáveis matemáticas entre Cifrões (ex: $x^2 + 2x$, $$f(x)=2x$$). É ABSOLUTAMENTE PROIBIDO usar colchetes como `[ ... ]` ou parênteses vazados para equações. Use apenas cifrão (`$` ou `$$`).
 - ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos, sua "auditoria", nem frases como "Controle de qualidade aprovado" no JSON de saída. Retorne apenas o conteúdo puro da aula.
@@ -274,18 +274,19 @@ def talvez_gerar_avaliacao_invisivel(
 
 def gerar_estrutura_tema(tema: str) -> list[dict]:
     prompt = f"""
-Sua tarefa é analisar o tema principal abaixo e deduzir TUDO o que é necessário para aprender esse conteúdo de forma completa e lógica.
+Sua tarefa é analisar o tema principal abaixo e deduzir TUDO o que é necessário para aprender esse conteúdo de forma prática, direta e focada no nível escolar/Ensino Médio.
 Depois, monte um plano de estudos dividindo esse conteúdo em subtemas estruturados.
 
 Tema: {tema}
 
 Regras:
-1. Analise o que é preciso para aprender todo o conteúdo necessário.
-2. DIRETO AO PONTO: Assuma que o aluno já tem a base matemática/teórica para estudar esse assunto. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial ou assuntos genéricos (Ex: Se o tema for Função Quadrática, NÃO ensine Plano Cartesiano ou o que é uma variável). O primeiro subtema deve ser exatamente sobre o tema solicitado.
-3. Divida o tema em subtemas ordenados. NÃO use limites artificiais (ex: não restrinja a 5 itens se o tema pedir 8 passos, nem invente 5 passos se 2 forem suficientes). Use a quantidade exata para cobrir o assunto.
-4. A progressão deve ser altamente inteligente e lógica, até chegar em problemas aplicados.
-5. IMPORTANTE: No campo "nome", forneça APENAS o nome específico do subtema (ex: "Gráficos"). NÃO REPETIR o nome do tema original junto (não faça "Função afim - Gráficos").
-6. Para que os conteúdos não se repitam depois, você DEVE definir exatamente qual é o "foco_delimitado" de cada subtema.
+1. Analise o que é preciso para aprender o conteúdo de forma prática e aplicada.
+2. DIRETO AO PONTO: Assuma que o aluno já tem a base. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial (Ex: se o tema for Equação Quadrática, não ensine plano cartesiano). Comece direto no assunto.
+3. NÍVEL DE ENSINO MÉDIO: NÃO gere tópicos de aprofundamento acadêmico inútil (ex: forma canônica, deduções complexas de fórmulas). Foque no feijão com arroz: o que é, como identificar, formas completas/incompletas, fórmulas famosas (ex: Bhaskara, Soma e Produto) e resolução prática.
+4. Divida o tema em subtemas ordenados. Use a quantidade exata para cobrir o assunto sem enrolação.
+5. A progressão deve ser ágil: Definição/Identificação -> Métodos de Resolução -> Problemas Aplicados.
+6. IMPORTANTE: No campo "nome", forneça APENAS o nome específico do subtema curto e claro.
+7. Para que os conteúdos não se repitam depois, você DEVE definir exatamente qual é o "foco_delimitado" de cada subtema.
 
 Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
 {{
