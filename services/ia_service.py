@@ -160,6 +160,7 @@ Retorne estritamente um JSON com a exata estrutura e regras abaixo:
                 "explicacao": parsed.get("explicacao") or _fallback_conteudo(materia, tema)["explicacao"],
                 "exemplo": parsed.get("exemplo") or _fallback_conteudo(materia, tema)["exemplo"],
                 "exercicios": parsed.get("exercicios") or _fallback_conteudo(materia, tema)["exercicios"],
+                "referencias": parsed.get("referencias") or "### 🔎 Referências Recomendadas\n- *Mentor*: A IA não pôde carregar as referências no momento.",
                 "origem": "ia",
             }
         except json.JSONDecodeError as e:
@@ -255,3 +256,44 @@ def talvez_gerar_avaliacao_invisivel(
     if random.random() < chance:
         return gerar_avaliacao_invisivel(objetivo, conteudos_recentes)
     return None
+
+
+def gerar_trilha_dinamica(user_id: str, objetivo: str, materias: list[str]) -> list[dict]:
+    prompt = f"""
+Atuando como o melhor mentor e orientador de estudos do mundo, avalie o aluno:
+Objetivo Principal: {objetivo}
+Disciplinas de Interesse: {', '.join(materias)}
+
+Sua tarefa é criar UMA TRILHA DIÁRIA DE ESTUDOS ALTAMENTE PERSONALIZADA, DINÂMICA E INOVADORA para hoje.
+Esqueça formatos engessados de 3 passos. A trilha deve conter de 2 a 5 etapas (dependendo do que faz mais sentido didaticamente).
+Cada etapa deve ser instigante, clara e desafiadora.
+
+Retorne ESTRITAMENTE o seguinte formato JSON:
+{{
+  "etapas": [
+    {{
+      "materia": "Nome da Matéria (ex: Matemática, Estratégia)",
+      "tema": "Tema Específico da Etapa (ex: Gráficos de Parábolas, Planejamento Tático)",
+      "tipo": "teoria" | "questoes" | "revisao" | "aplicacao_pratica"
+    }}
+  ]
+}}
+""".strip()
+
+    raw, _ = _chamar_ia(prompt)
+    if raw and raw.startswith("```"):
+        raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+        raw = re.sub(r"```$", "", raw).strip()
+
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            return parsed.get("etapas", [])
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback dinâmico seguro
+    return [
+        {"materia": materias[0] if materias else "Conhecimentos Gerais", "tema": "Fundamentos Introdutórios", "tipo": "teoria"},
+        {"materia": materias[0] if materias else "Conhecimentos Gerais", "tema": "Estudo de Caso Prático", "tipo": "aplicacao_pratica"}
+    ]
