@@ -183,13 +183,14 @@
       }
 
       .task-label {
-        position: absolute;
-        bottom: -28px;
+        margin-top: 10px;
+        margin-bottom: 10px;
         font-size: 14px;
         font-weight: 800;
         text-align: center;
-        width: 140px;
+        width: 250px;
         color: #64748b;
+        z-index: 2;
       }
 
       .path-line {
@@ -197,8 +198,6 @@
         height: 40px;
         background: var(--gray);
         z-index: 1;
-        margin-top: -10px;
-        margin-bottom: -10px;
       }
 
       /* Lesson Screen */
@@ -560,13 +559,17 @@
           const node = document.createElement('div');
           node.className = `task-node ${nodeClass}`;
           node.textContent = icon;
-          node.innerHTML += `<div class="task-label">${task.materia}<br><span style="font-weight:400">${task.tema}</span></div>`;
 
           if (nodeClass === 'active') {
             node.onclick = () => startLesson(task);
           }
 
           wrapper.appendChild(node);
+
+          const label = document.createElement('div');
+          label.className = 'task-label';
+          label.innerHTML = `${task.materia}<br><span style="font-weight:400">${task.tema}</span>`;
+          wrapper.appendChild(label);
 
           if (idx < state.tarefas.length - 1) {
             const line = document.createElement('div');
@@ -710,9 +713,15 @@
                  feedbackDiv.style.padding = '15px';
                  feedbackDiv.style.borderRadius = '12px';
                  feedbackDiv.style.fontWeight = 'bold';
-                 feedbackDiv.style.backgroundColor = evaluation.correto ? '#dcfce7' : '#fee2e2';
+                 feedbackDiv.style.backgroundColor = evaluation.correto ? '#dcfce7' : '#fef2f2';
                  feedbackDiv.style.color = evaluation.correto ? '#166534' : '#991b1b';
-                 feedbackDiv.innerHTML = `<div>${evaluation.correto ? '✅ Muito Bem!' : '❌ Ops!'}</div><div style="font-weight:normal; margin-top:5px;">${evaluation.feedback}</div>`;
+
+                 let extraHtml = '';
+                 if (!evaluation.correto) {
+                    extraHtml = `<div style="margin-top: 15px;"><button id="btn-try-again" style="background: transparent; border: 1px solid #991b1b; color: #991b1b; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 700;">Tentar Novamente</button></div>`;
+                 }
+
+                 feedbackDiv.innerHTML = `<div>${evaluation.correto ? '✅ Muito Bem!' : '❌ Ops!'}</div><div style="font-weight:normal; margin-top:5px;">${evaluation.feedback}</div>${extraHtml}`;
 
                  contentDiv.appendChild(feedbackDiv);
 
@@ -721,13 +730,19 @@
                      btn.disabled = false;
                      btn.onclick = advanceLessonFlow;
                  } else {
-                     btn.textContent = 'Tentar novamente';
+                     // Permite avançar mesmo errando
+                     btn.textContent = state.lessonStep === totalSteps - 1 ? 'Concluir Mesmo Assim' : 'Continuar Mesmo Assim';
                      btn.disabled = false;
-                     // mantém a mesma etapa para ele responder de novo
-                     btn.onclick = () => {
-                        feedbackDiv.remove();
-                        renderLessonStep();
-                     };
+                     btn.onclick = advanceLessonFlow;
+
+                     // Se quiser tentar de novo
+                     const btnTryAgain = document.getElementById('btn-try-again');
+                     if (btnTryAgain) {
+                         btnTryAgain.onclick = () => {
+                             feedbackDiv.remove();
+                             renderLessonStep();
+                         };
+                     }
                  }
              } catch(e) {
                  $('err-lesson').textContent = e.message;

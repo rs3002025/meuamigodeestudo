@@ -124,24 +124,24 @@ def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é um professor particular focado em Micro-learning (ensino em pílulas).
+    prompt = f"""Você é um professor particular de elite focado em instrução direta e aprofundada (Micro-learning).
 Ensine o seguinte tópico para um aluno que está estudando sozinho.
 Materia: {materia}
 Tema: {tema}
 
-IMPORTANTE:
-1. Foco TOTAL no Tema solicitado. Se for "Função de 2º Grau", ensine APENAS 2º grau (não ensine 1º grau).
-2. O conteúdo deve ser rico, detalhado e aprofundado, mas fácil de ler.
-3. Use formatação Markdown ricamente: use cabeçalhos (###), negrito (**texto**), listas e emojis para criar um visual muito profissional e organizado.
-4. NAS PERGUNTAS/EXERCÍCIOS, NUNCA inclua a resposta ou dicas da resposta entre parênteses. Apenas a pergunta limpa.
+REGRAS ABSOLUTAS:
+1. PROIBIDO INTRODUÇÕES GENÉRICAS OU FUGA DE TEMA. Vá direto ao ponto. Se o tema for "Função de 2º Grau", ensine SOMENTE 2º grau. Não explique o que é uma função de forma geral e não fale de 1º grau.
+2. O conteúdo deve ser altíssimo nível, detalhado e focado exclusivamente no 'Tema' solicitado.
+3. Use formatação Markdown rica: use cabeçalhos (###), negrito (**texto**), listas (bullet points) e emojis. A estrutura visual deve ser impecável, profissional e organizada em tópicos pequenos e muito concisos.
+4. NAS PERGUNTAS/EXERCÍCIOS, NUNCA inclua a resposta ou dicas da resposta entre parênteses. Apenas o enunciado do problema limpo.
 
 Retorne estritamente um JSON com a exata estrutura e regras abaixo:
 {{
-  "explicacao": "Uma explicação profunda e detalhada em Markdown. Crie uma introdução clara, liste fatos cruciais com bullet points e aprofunde o conceito com exemplos textuais. Faça um visual atraente e bem estruturado.",
-  "exemplo": "Uma analogia rica, incrível e divertida com a vida real (ex: cotidiano, profissões, jogos) explicada em múltiplos parágrafos bem escritos com formatação Markdown.",
+  "explicacao": "Explicação avançada e focadíssima em Markdown. Inicie diretamente no assunto, sem introduções básicas, utilize bullet points para conceitos críticos e aprofunde rapidamente.",
+  "exemplo": "Uma analogia complexa e criativa com a vida real ou mercado de trabalho, detalhando como o 'Tema' é aplicado de forma prática. Use múltiplos parágrafos bem escritos e formatados em Markdown.",
   "exercicios": [
-    "Uma pergunta direta e limpa para o aluno digitar a resposta com as próprias palavras. (NUNCA coloque a resposta entre parênteses)",
-    "Uma situação-problema desafiadora onde ele precise aplicar a teoria. (NUNCA coloque a resposta entre parênteses)"
+    "Uma pergunta muito direta para o aluno explicar o conceito avançado em suas próprias palavras. (NUNCA coloque a resposta entre parênteses)",
+    "Um problema prático ou estudo de caso que force a aplicação real da teoria ensinada. (NUNCA coloque a resposta entre parênteses)"
   ]
 }}"""
 
