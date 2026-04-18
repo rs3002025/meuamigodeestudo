@@ -53,7 +53,7 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
                 "tipo": tipo,
                 "materia": materia,
                 "tema": tema,
-                "descricao": f"{materia} — {tema} ({tipo.capitalize()})",
+                "descricao": tema,
                 "conteudo": conteudo,
                 "status": "pendente",
                 "podePular": False,
