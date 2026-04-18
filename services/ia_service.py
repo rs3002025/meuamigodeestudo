@@ -124,26 +124,37 @@ def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é um professor particular de elite focado em instrução direta e aprofundada (Micro-learning).
-Ensine o seguinte tópico para um aluno que está estudando sozinho.
-Materia: {materia}
+    prompt = f"""Você é um professor particular ensinando de forma clara e direta.
+
+Matéria: {materia}
 Tema: {tema}
 
-REGRAS ABSOLUTAS:
-1. PROIBIDO INTRODUÇÕES GENÉRICAS OU FUGA DE TEMA. Vá direto ao ponto. Se o tema for "Função de 2º Grau", ensine SOMENTE 2º grau. Não explique o que é uma função de forma geral e não fale de 1º grau.
-2. O conteúdo deve ser altíssimo nível, detalhado e focado exclusivamente no 'Tema' solicitado.
-3. Use formatação Markdown rica: use cabeçalhos (###), negrito (**texto**), listas (bullet points) e emojis. A estrutura visual deve ser impecável, profissional e organizada em tópicos pequenos e muito concisos.
-4. NAS PERGUNTAS/EXERCÍCIOS, NUNCA inclua a resposta ou dicas da resposta entre parênteses. Apenas o enunciado do problema limpo.
+REGRA PRINCIPAL:
+- Ensine SOMENTE o tema informado
+- NÃO explique conceitos mais básicos
+- NÃO amplie o assunto
 
-Retorne estritamente um JSON com a exata estrutura e regras abaixo:
+Estrutura obrigatória:
+1) Explicação direta do tema
+2) Como funciona
+3) Exemplo
+4) 2 ou 3 exercícios
+
+Regras:
+- linguagem simples
+- sem linguagem acadêmica
+- sem fugir do tema
+- não ser superficial
+- não ser excessivamente longo
+- não dar resposta dos exercícios (NUNCA coloque a resposta ou dicas da resposta entre parênteses)
+
+Retorne em JSON:
 {{
-  "explicacao": "Explicação avançada e focadíssima em Markdown. Inicie diretamente no assunto, sem introduções básicas, utilize bullet points para conceitos críticos e aprofunde rapidamente.",
-  "exemplo": "Uma analogia complexa e criativa com a vida real ou mercado de trabalho, detalhando como o 'Tema' é aplicado de forma prática. Use múltiplos parágrafos bem escritos e formatados em Markdown.",
-  "exercicios": [
-    "Uma pergunta muito direta para o aluno explicar o conceito avançado em suas próprias palavras. (NUNCA coloque a resposta entre parênteses)",
-    "Um problema prático ou estudo de caso que force a aplicação real da teoria ensinada. (NUNCA coloque a resposta entre parênteses)"
-  ]
-}}"""
+  "explicacao": "A explicação direta do tema, juntamente com 'como funciona'.",
+  "exemplo": "Um exemplo claro e aplicável.",
+  "exercicios": ["...", "..."]
+}}
+"""
 
     raw, erro_tecnico = _chamar_ia(prompt)
 
@@ -258,26 +269,20 @@ def talvez_gerar_avaliacao_invisivel(
     return None
 
 
-def gerar_trilha_dinamica(user_id: str, objetivo: str, materias: list[str]) -> list[dict]:
+def gerar_estrutura_tema(tema: str) -> list[str]:
     prompt = f"""
-Atuando como o melhor mentor e orientador de estudos do mundo, avalie o aluno:
-Objetivo Principal: {objetivo}
-Disciplinas de Interesse: {', '.join(materias)}
+Divida o seguinte tema em subtemas menores.
 
-Sua tarefa é criar UMA TRILHA DIÁRIA DE ESTUDOS ALTAMENTE PERSONALIZADA, DINÂMICA E INOVADORA para hoje.
-Esqueça formatos engessados de 3 passos. A trilha deve conter de 2 a 5 etapas (dependendo do que faz mais sentido didaticamente).
-Cada etapa deve ser instigante, clara e desafiadora.
+Tema: {tema}
 
-Retorne ESTRITAMENTE o seguinte formato JSON:
-{{
-  "etapas": [
-    {{
-      "materia": "Nome da Matéria (ex: Matemática, Estratégia)",
-      "tema": "Tema Específico da Etapa (ex: Gráficos de Parábolas, Planejamento Tático)",
-      "tipo": "teoria" | "questoes" | "revisao" | "aplicacao_pratica"
-    }}
-  ]
-}}
+Regras:
+- apenas dividir o tema em subtemas
+- máximo 5–6 itens
+- ordem progressiva
+- sem explicação
+
+Retorne ESTRITAMENTE um array JSON contendo os nomes dos subtemas. Exemplo:
+["forma da função do 2º grau", "cálculo das raízes", "vértice", "gráfico", "problemas aplicados"]
 """.strip()
 
     raw, _ = _chamar_ia(prompt)
@@ -288,12 +293,14 @@ Retorne ESTRITAMENTE o seguinte formato JSON:
     if raw:
         try:
             parsed = json.loads(raw)
-            return parsed.get("etapas", [])
+            if isinstance(parsed, list):
+                return parsed
         except json.JSONDecodeError:
             pass
 
-    # Fallback dinâmico seguro
+    # Fallback determinístico caso a IA falhe
     return [
-        {"materia": materias[0] if materias else "Conhecimentos Gerais", "tema": "Fundamentos Introdutórios", "tipo": "teoria"},
-        {"materia": materias[0] if materias else "Conhecimentos Gerais", "tema": "Estudo de Caso Prático", "tipo": "aplicacao_pratica"}
+        f"{tema} (Fundamentos)",
+        f"{tema} (Aprofundamento)",
+        f"{tema} (Aplicações)"
     ]

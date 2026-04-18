@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 from services.db import get_user_metrics, get_db_connection
+from services.ia_service import gerar_estrutura_tema
 
 CARGA_POR_NIVEL = {
     "iniciante": 40,
@@ -29,6 +30,18 @@ def gerar_plano_inicial(payload: dict) -> dict:
 
     materias = payload.get("materias") or _objetivo_para_lista(payload.get("objetivo"))
 
+    # Nova arquitetura: Gerar blocos de subtemas para a trilha
+    trilha_subtemas = []
+
+    # Se há matérias, geramos subtemas para a primeira (ou todas). Para manter simples, vamos gerar para a primeira matéria (que geralmente é o foco principal).
+    # Se o objetivo é direto, quebramos ele.
+    foco = materias[0] if materias else str(payload.get("objetivo", ""))
+    if foco:
+        subtemas = gerar_estrutura_tema(foco)
+        for subtema in subtemas:
+            trilha_subtemas.append({"materia": foco, "tema": subtema, "tipo": "teoria"})
+            trilha_subtemas.append({"materia": foco, "tema": subtema, "tipo": "questoes"})
+
     plano = {
         "userId": user_id,
         "objetivo": payload["objetivo"],
@@ -38,6 +51,8 @@ def gerar_plano_inicial(payload: dict) -> dict:
         "tipo": payload.get("tipo", "escola"),
         "cargaDiaria": calcular_carga_diaria(tempo_disponivel_min, nivel),
         "focoAtual": ["teoria", "questoes", "revisao"],
+        "trilha_subtemas": trilha_subtemas,
+        "progresso_trilha": 0,
         "versao": 1,
         "criadoEm": _agora_iso(),
         "atualizadoEm": _agora_iso(),

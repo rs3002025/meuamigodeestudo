@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from services.db import registrar_estudo, get_db_connection
-from services.ia_service import gerar_conteudo, gerar_trilha_dinamica
+from services.ia_service import gerar_conteudo
 from services.node_service import feedback_conclusao
 
 def _hoje() -> str:
@@ -21,19 +21,25 @@ def _temas_padrao(materia: str) -> list[str]:
 
 def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
     hoje = _hoje()
-    materias = plano.get("materias") or []
-    objetivo = plano.get("objetivo", "Estudos Gerais")
 
-    if not materias:
-        materias = objetivo if isinstance(objetivo, list) else [str(objetivo)]
+    trilha_subtemas = plano.get("trilha_subtemas", [])
+    progresso_trilha = plano.get("progresso_trilha", 0)
 
-    # Dynamic AI Path Generation
-    etapas_dinamicas = gerar_trilha_dinamica(user_id, str(objetivo), materias)
+    # Entregar em blocos (ex: 2 subtemas por vez, que equivale a 4 itens na lista já que cada subtema gera teoria + questoes)
+    # Como as tarefas tem "teoria" e "questoes", vamos entregar 4 itens da trilha.
+    blocos_por_dia = 4
+
+    etapas_dinamicas = trilha_subtemas[progresso_trilha : progresso_trilha + blocos_por_dia]
+
+    # Se chegamos ao fim e não há mais blocos, podemos reiniciar ou gerar algo extra.
+    # Por simplicidade, vamos entregar as últimas se passarem do limite.
+    if not etapas_dinamicas and trilha_subtemas:
+        etapas_dinamicas = trilha_subtemas[-blocos_por_dia:]
 
     tarefas: list[dict] = []
 
     for idx, etapa in enumerate(etapas_dinamicas):
-        materia = etapa.get("materia", materias[0] if materias else "Geral")
+        materia = etapa.get("materia", "Geral")
         tema = etapa.get("tema", "Fundamentos")
         tipo = etapa.get("tipo", "teoria")
 
@@ -46,12 +52,16 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
                 "tipo": tipo,
                 "materia": materia,
                 "tema": tema,
-                "descricao": f"{materia} — {tema}",
+                "descricao": f"{materia} — {tema} ({tipo.capitalize()})",
                 "conteudo": conteudo,
                 "status": "pendente",
                 "podePular": False,
             }
         )
+
+    # Avançar progresso na trilha do plano
+    novo_progresso = progresso_trilha + len(etapas_dinamicas)
+    plano["progresso_trilha"] = novo_progresso
 
     task_key = f"{user_id}:{hoje}"
     with get_db_connection() as conn:
@@ -61,6 +71,12 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
                 VALUES (%s, %s, %s, %s::jsonb)
                 ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload
             """, (task_key, user_id, hoje, json.dumps(tarefas)))
+
+            # Atualiza também o plano do usuário com o novo progresso
+            cur.execute("""
+                UPDATE plans SET payload = %s::jsonb WHERE user_id = %s
+            """, (json.dumps(plano), user_id))
+
             conn.commit()
 
     return tarefas
