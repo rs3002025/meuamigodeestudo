@@ -42,8 +42,9 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
         materia = etapa.get("materia", "Geral")
         tema = etapa.get("tema", "Fundamentos")
         tipo = etapa.get("tipo", "teoria")
+        foco_delimitado = etapa.get("foco_delimitado", "")
 
-        conteudo = gerar_conteudo(user_id, materia, tema)
+        conteudo = gerar_conteudo(user_id, materia, tema, foco_delimitado)
 
         tarefas.append(
             {

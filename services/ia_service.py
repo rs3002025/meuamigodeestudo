@@ -116,7 +116,7 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         return None, f"Retorno inesperado da IA: {e}"
 
 
-def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
+def gerar_conteudo(user_id: str, materia: str, tema: str, foco_delimitado: str = "") -> dict:
     cached = get_cached_content(user_id, materia, tema)
     if cached:
         return {**cached, "cache": True}
@@ -128,11 +128,12 @@ def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
 
 Matéria: {materia}
 Tema: {tema}
+Foco Específico da Aula: {foco_delimitado}
 
 REGRA PRINCIPAL:
-- Ensine SOMENTE o tema informado
+- Ensine SOMENTE o tema informado e restrito ao "Foco Específico da Aula".
 - NÃO explique conceitos mais básicos
-- NÃO amplie o assunto
+- NÃO amplie o assunto, não ensine os passos seguintes
 
 Estrutura obrigatória:
 1) Explicação direta do tema
@@ -140,7 +141,12 @@ Estrutura obrigatória:
 3) Exemplo
 4) 2 ou 3 exercícios
 
-Regras:
+Regras de Formatação (MUITO IMPORTANTE):
+- Use Markdown rico.
+- Faça parágrafos curtos e pule linhas entre eles.
+- Use cabeçalhos (###), negrito (**texto**) e bullet points para não gerar blocos maciços e confusos de texto.
+
+Regras Didáticas:
 - linguagem simples
 - sem linguagem acadêmica
 - sem fugir do tema
@@ -148,10 +154,10 @@ Regras:
 - não ser excessivamente longo
 - não dar resposta dos exercícios (NUNCA coloque a resposta ou dicas da resposta entre parênteses)
 
-Retorne em JSON:
+Retorne ESTRITAMENTE em JSON:
 {{
-  "explicacao": "A explicação direta do tema, juntamente com 'como funciona'.",
-  "exemplo": "Um exemplo claro e aplicável.",
+  "explicacao": "Sua explicação detalhada, linda e muito bem formatada em Markdown, juntamente com 'como funciona'. Use quebras de linha e emojis.",
+  "exemplo": "Um exemplo claro e aplicável, formatado em Markdown.",
   "exercicios": ["...", "..."]
 }}
 """
@@ -269,20 +275,28 @@ def talvez_gerar_avaliacao_invisivel(
     return None
 
 
-def gerar_estrutura_tema(tema: str) -> list[str]:
+def gerar_estrutura_tema(tema: str) -> list[dict]:
     prompt = f"""
-Divida o seguinte tema em subtemas menores.
+Sua tarefa é analisar o tema principal abaixo e deduzir TUDO o que é necessário para aprender esse conteúdo de forma completa e lógica.
+Depois, monte um plano de estudos dividindo esse conteúdo em subtemas estruturados.
 
 Tema: {tema}
 
 Regras:
-- apenas dividir o tema em subtemas
-- máximo 5–6 itens
-- ordem progressiva
-- sem explicação
+1. Analise o que é preciso para aprender todo o conteúdo necessário.
+2. Divida o tema em subtemas ordenados (máximo de 5 a 6 itens).
+3. A progressão deve ser altamente inteligente e lógica (do básico necessário até a aplicação).
+4. Para que os conteúdos não se repitam depois, você DEVE definir exatamente qual é o "foco" de cada subtema.
 
-Retorne ESTRITAMENTE um array JSON contendo os nomes dos subtemas. Exemplo:
-["forma da função do 2º grau", "cálculo das raízes", "vértice", "gráfico", "problemas aplicados"]
+Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
+{{
+  "subtemas": [
+    {{
+      "nome": "O nome curto e direto do subtema",
+      "foco_delimitado": "A instrução estrita do que deve ser ensinado apenas aqui, para não atropelar ou se misturar com os próximos."
+    }}
+  ]
+}}
 """.strip()
 
     raw, _ = _chamar_ia(prompt)
@@ -293,14 +307,23 @@ Retorne ESTRITAMENTE um array JSON contendo os nomes dos subtemas. Exemplo:
     if raw:
         try:
             parsed = json.loads(raw)
-            if isinstance(parsed, list):
-                return parsed
+            if isinstance(parsed, dict) and "subtemas" in parsed:
+                return parsed["subtemas"]
         except json.JSONDecodeError:
             pass
 
     # Fallback determinístico caso a IA falhe
     return [
-        f"{tema} (Fundamentos)",
-        f"{tema} (Aprofundamento)",
-        f"{tema} (Aplicações)"
+        {
+            "nome": f"{tema} (Fundamentos)",
+            "foco_delimitado": "Apenas conceitos introdutórios e definições básicas."
+        },
+        {
+            "nome": f"{tema} (Aprofundamento)",
+            "foco_delimitado": "Foco em regras mais avançadas, fórmulas ou estruturas complexas."
+        },
+        {
+            "nome": f"{tema} (Aplicações)",
+            "foco_delimitado": "Exclusivo para casos de uso e exemplos práticos reais do dia a dia."
+        }
     ]

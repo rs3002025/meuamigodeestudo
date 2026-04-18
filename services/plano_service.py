@@ -39,8 +39,10 @@ def gerar_plano_inicial(payload: dict) -> dict:
     if foco:
         subtemas = gerar_estrutura_tema(foco)
         for subtema in subtemas:
-            trilha_subtemas.append({"materia": foco, "tema": subtema, "tipo": "teoria"})
-            trilha_subtemas.append({"materia": foco, "tema": subtema, "tipo": "questoes"})
+            nome_tema = subtema.get("nome", "Tema")
+            foco_delimitado = subtema.get("foco_delimitado", "")
+            trilha_subtemas.append({"materia": foco, "tema": nome_tema, "foco_delimitado": foco_delimitado, "tipo": "teoria"})
+            trilha_subtemas.append({"materia": foco, "tema": nome_tema, "foco_delimitado": foco_delimitado, "tipo": "questoes"})
 
     plano = {
         "userId": user_id,
