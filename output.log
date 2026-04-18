@@ -8,11 +8,11 @@
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 123-396-847
-127.0.0.1 - - [18/Apr/2026 14:40:25] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [18/Apr/2026 14:40:26] "[36mGET / HTTP/1.1[0m" 304 -
-127.0.0.1 - - [18/Apr/2026 14:40:26] "POST /api/onboarding/detectar-tipo HTTP/1.1" 200 -
-127.0.0.1 - - [18/Apr/2026 14:40:50] "[35m[1mPOST /api/onboarding/finalizar HTTP/1.1[0m" 201 -
- * Detected change in '/app/wipe_db.py', reloading
+ * Detected change in '/app/test_db_live.py', reloading
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 123-396-847
+127.0.0.1 - - [18/Apr/2026 15:20:08] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [18/Apr/2026 15:20:08] "[36mGET / HTTP/1.1[0m" 304 -
+127.0.0.1 - - [18/Apr/2026 15:20:09] "POST /api/onboarding/detectar-tipo HTTP/1.1" 200 -
+127.0.0.1 - - [18/Apr/2026 15:20:33] "[35m[1mPOST /api/onboarding/finalizar HTTP/1.1[0m" 201 -

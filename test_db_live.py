@@ -6,16 +6,17 @@ DB_URL = "postgresql://postgres:IyvjQcfmReamkaOGSguxUvBhCirdXuHA@switchyard.prox
 
 conn = psycopg2.connect(DB_URL)
 cursor = conn.cursor()
-cursor.execute("SELECT payload FROM tasks;")
+cursor.execute("SELECT payload FROM plans ORDER BY user_id DESC LIMIT 1;")
 rows = cursor.fetchall()
 if not rows:
-    print("No tasks generated. This is normal if OpenAI key is missing in tests.")
+    print("No plans generated.")
 else:
     for row in rows:
-        tasks = row[0]
-        print(f"Total tasks in UI: {len(tasks)}")
-        for t in tasks:
-            print(f"- {t.get('tema')} ({t.get('tipo')})")
+        payload = row[0]
+        subtemas = payload.get("trilha_subtemas", [])
+        print(f"Total subtemas gerados na trilha: {len(subtemas)}")
+        for st in subtemas:
+            print(f"- {st.get('tema')}")
         print("===")
 cursor.close()
 conn.close()
