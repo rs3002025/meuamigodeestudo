@@ -177,7 +177,6 @@ Retorne ESTRITAMENTE em JSON:
                 "explicacao": parsed.get("explicacao") or _fallback_conteudo(materia, tema)["explicacao"],
                 "exemplo": parsed.get("exemplo") or _fallback_conteudo(materia, tema)["exemplo"],
                 "exercicios": parsed.get("exercicios") or _fallback_conteudo(materia, tema)["exercicios"],
-                "referencias": parsed.get("referencias") or "### 🔎 Referências Recomendadas\n- *Mentor*: A IA não pôde carregar as referências no momento.",
                 "origem": "ia",
             }
         except json.JSONDecodeError as e:
@@ -217,13 +216,16 @@ Pergunta Feita: {enunciado}
 Resposta do Aluno: {resposta_usuario}
 
 Sua tarefa é ler a resposta e avaliar se demonstra compreensão.
-IMPORTANTE: Use o tom de "parceiro de estudos", falando diretamente com o aluno em SEGUNDA PESSOA (você). NUNCA fale em terceira pessoa (ex: "o aluno acertou").
-Diga algo como: "Muito bem, você pegou a ideia!" ou "Você quase lá, mas lembre-se que...".
+
+REGRAS DE AVALIAÇÃO:
+1. SEJA MUITO FLEXÍVEL: Ignore completamente erros de digitação, falta de acentuação ou respostas muito curtas/informais, desde que a ideia central ou a intuição do aluno esteja minimamente correta.
+2. SÓ MARQUE COMO ERRADO (false): Se o aluno escrever algo completamente fora do contexto, assumir um conceito gravemente errado, ou disser "não sei".
+3. TOM E EMPATIA: Fale diretamente com o aluno em SEGUNDA PESSOA ("você"). Seja absurdamente amigável, acolhedor e encorajador. Jamais use um tom robótico ou punitivo. Se ele acertar a ideia, elogie com entusiasmo. Se errar, seja gentil e explique rapidamente o ponto principal sem fazer ele se sentir mal.
 
 Retorne ESTRITAMENTE o formato JSON a seguir:
 {{
-  "correto": true ou false (boolean),
-  "feedback": "Um parágrafo curto (1 ou 2 frases) explicando por que VOCÊ acertou ou como VOCÊ poderia melhorar caso tenha errado. Seja direto, íntimo e muito encorajador."
+  "correto": true ou false,
+  "feedback": "Seu feedback super amigável e conversacional, focando em incentivar e corrigir a direção (1 ou 2 frases no máximo)."
 }}"""
 
     raw, _ = _chamar_ia(prompt)
@@ -286,13 +288,14 @@ Regras:
 1. Analise o que é preciso para aprender todo o conteúdo necessário.
 2. Divida o tema em subtemas ordenados (máximo de 5 a 6 itens).
 3. A progressão deve ser altamente inteligente e lógica (do básico necessário até a aplicação).
-4. Para que os conteúdos não se repitam depois, você DEVE definir exatamente qual é o "foco" de cada subtema.
+4. IMPORTANTE: No campo "nome", forneça APENAS o nome específico do subtema (ex: "Coordenadas e Proporcionalidade" ou "Gráficos"). NÃO REPETIR o nome do tema original junto (não faça "Função afim - Gráficos").
+5. Para que os conteúdos não se repitam depois, você DEVE definir exatamente qual é o "foco_delimitado" de cada subtema.
 
 Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
 {{
   "subtemas": [
     {{
-      "nome": "O nome curto e direto do subtema",
+      "nome": "Apenas o nome próprio e curto do subtema",
       "foco_delimitado": "A instrução estrita do que deve ser ensinado apenas aqui, para não atropelar ou se misturar com os próximos."
     }}
   ]
