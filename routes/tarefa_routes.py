@@ -63,6 +63,20 @@ def tarefas_hoje(user_id: str):
     return jsonify({"mensagem": mensagem, "tarefas": tarefas, "streak": metrics.get("dias_consecutivos", 0)})
 
 
+@tarefa_bp.post("/<user_id>/avaliar-resposta")
+def avaliar_resposta_usuario(user_id: str):
+    body = request.get_json(silent=True) or {}
+    tema = body.get("tema")
+    enunciado = body.get("enunciado")
+    resposta = body.get("resposta")
+
+    if not tema or not enunciado or not resposta:
+        return jsonify({"erro": "Tema, enunciado e resposta são obrigatórios."}), 400
+
+    from services.ia_service import avaliar_resposta_exercicio
+    resultado = avaliar_resposta_exercicio(tema, enunciado, resposta)
+    return jsonify(resultado), 200
+
 @tarefa_bp.post("/<user_id>/concluir")
 def concluir(user_id: str):
     body = request.get_json(silent=True) or {}

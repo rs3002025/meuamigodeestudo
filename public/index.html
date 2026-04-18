@@ -615,18 +615,20 @@
         const interactiveArea = $('lesson-interactive-area');
         const answerInput = $('lesson-answer');
 
+        // Remove qualquer feedback antigo
+        const oldFeedback = document.getElementById('lesson-feedback');
+        if (oldFeedback) oldFeedback.remove();
+
         if (state.lessonStep === 0) {
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Conceito Novo';
-          contentDiv.innerHTML = '<p id="lesson-text"></p>';
-          $('lesson-text').textContent = conteudo.explicacao;
+          contentDiv.innerHTML = `<p id="lesson-text">${conteudo.explicacao.replace(/\n/g, '<br>')}</p>`;
           btn.textContent = 'Entendi';
         }
         else if (state.lessonStep === 1) {
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Exemplo Prático';
-          contentDiv.innerHTML = '<p id="lesson-text"></p>';
-          $('lesson-text').textContent = conteudo.exemplo;
+          contentDiv.innerHTML = `<p id="lesson-text">${conteudo.exemplo.replace(/\n/g, '<br>')}</p>`;
           btn.textContent = 'Continuar';
         }
         else {
@@ -635,15 +637,100 @@
           answerInput.value = ''; // Limpa resposta
 
           badge.textContent = `Exercício ${exIdx + 1} de ${exercicios.length}`;
-          contentDiv.innerHTML = '<p id="lesson-text"></p>';
-          $('lesson-text').textContent = exercicios[exIdx];
+
+          // Tratando quebra de linha do banco para a div principal com estilos legíveis
+          const formattedText = exercicios[exIdx].replace(/\n/g, '<br>');
+          contentDiv.innerHTML = `<p id="lesson-text">${formattedText}</p>`;
 
           if (state.lessonStep === totalSteps - 1) {
             btn.textContent = 'Verificar e Concluir';
           } else {
             btn.textContent = 'Verificar e Continuar';
           }
+
+          // Mudamos o comportamento do botão para validar primeiro
+          btn.onclick = async () => {
+             $('err-lesson').textContent = '';
+             const ans = answerInput.value.trim();
+             if(!ans) {
+                 $('err-lesson').textContent = 'Você precisa escrever uma resposta!';
+                 return;
+             }
+
+             try {
+                 btn.textContent = 'Avaliando...';
+                 btn.disabled = true;
+
+                 const evaluation = await post(`/api/tarefas/${state.userId}/avaliar-resposta`, {
+                     tema: state.lessonActive.tema,
+                     enunciado: exercicios[exIdx],
+                     resposta: ans
+                 });
+
+                 // Mostra feedback da IA
+                 const feedbackDiv = document.createElement('div');
+                 feedbackDiv.id = 'lesson-feedback';
+                 feedbackDiv.style.marginTop = '15px';
+                 feedbackDiv.style.padding = '15px';
+                 feedbackDiv.style.borderRadius = '12px';
+                 feedbackDiv.style.fontWeight = 'bold';
+                 feedbackDiv.style.backgroundColor = evaluation.correto ? '#dcfce7' : '#fee2e2';
+                 feedbackDiv.style.color = evaluation.correto ? '#166534' : '#991b1b';
+                 feedbackDiv.innerHTML = `<div>${evaluation.correto ? '✅ Muito Bem!' : '❌ Ops!'}</div><div style="font-weight:normal; margin-top:5px;">${evaluation.feedback}</div>`;
+
+                 contentDiv.appendChild(feedbackDiv);
+
+                 if(evaluation.correto) {
+                     btn.textContent = state.lessonStep === totalSteps - 1 ? 'Concluir' : 'Continuar';
+                     btn.disabled = false;
+                     btn.onclick = advanceLessonFlow;
+                 } else {
+                     btn.textContent = 'Tentar novamente';
+                     btn.disabled = false;
+                     // mantém a mesma etapa para ele responder de novo
+                     btn.onclick = () => {
+                        feedbackDiv.remove();
+                        renderLessonStep();
+                     };
+                 }
+             } catch(e) {
+                 $('err-lesson').textContent = e.message;
+                 btn.textContent = 'Verificar Novamente';
+                 btn.disabled = false;
+             }
+          };
+
+          // Pula a função onclick de avanço padrão, usando a nossa acima para o step de exercício
+          return;
         }
+
+        btn.onclick = advanceLessonFlow;
+      }
+
+      async function advanceLessonFlow() {
+          const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
+          const totalSteps = 2 + exerciciosCount;
+          const btn = $('btn-lesson-action');
+          $('err-lesson').textContent = '';
+
+          if (state.lessonStep >= totalSteps - 1) {
+              try {
+                btn.textContent = 'Concluindo...'; btn.disabled = true;
+                const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: state.lessonActive.id });
+                state.tarefas = data.tarefas;
+                $('journey-msg').textContent = data.feedback || 'Muito bem! Lição concluída!';
+                buildJourney();
+                hideAllScreens();
+                $('screen-journey').classList.remove('hidden');
+              } catch(e) {
+                $('err-lesson').textContent = e.message;
+              } finally {
+                btn.textContent = 'Continuar'; btn.disabled = false;
+              }
+          } else {
+              state.lessonStep++;
+              renderLessonStep();
+          }
       }
 
     </script>

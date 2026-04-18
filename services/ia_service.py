@@ -125,17 +125,18 @@ def gerar_conteudo(user_id: str, materia: str, tema: str) -> dict:
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
     prompt = f"""
-Explique de forma simples e direta o seguinte tópico para um aluno estudando sozinho.
+Você é um professor particular focado em Micro-learning (ensino em pílulas).
+Ensine o seguinte tópico para um aluno que está estudando sozinho.
 Materia: {materia}
 Tema: {tema}
 
-Retorne estritamente um JSON com a exata estrutura:
+Retorne estritamente um JSON com a exata estrutura e regras abaixo:
 {{
-  "explicacao": "O conceito principal com linguagem simples em até 2 parágrafos pequenos.",
-  "exemplo": "Um exemplo prático e de fácil entendimento.",
+  "explicacao": "Um texto EXTREMAMENTE visual e agradável de ler. Use quebras de linha (\\n), emojis e bullet points. Introduza o tema e liste 3 fatos importantes de forma pontual e didática.",
+  "exemplo": "Uma analogia incrível e divertida com a vida real (ex: compras, cotidiano, jogos) para fixar o conceito, separada em pequenos parágrafos.",
   "exercicios": [
-    "Pergunta reflexiva ou prática número 1.",
-    "Pergunta reflexiva ou prática número 2."
+    "Uma pergunta que faça o aluno pensar e digitar a resposta com as próprias palavras.",
+    "Uma situação-problema onde ele precise aplicar a teoria ensinada."
   ]
 }}
 """.strip()
@@ -186,6 +187,39 @@ def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
         for i in range(quantidade)
     ]
 
+
+def avaliar_resposta_exercicio(tema: str, enunciado: str, resposta_usuario: str) -> dict:
+    prompt = f"""
+Atuando como um professor avaliando a resposta de um aluno:
+Tema da Aula: {tema}
+Pergunta Feita: {enunciado}
+Resposta do Aluno: {resposta_usuario}
+
+Sua tarefa é ler a resposta do aluno e avaliá-corretamente se ela demonstra compreensão do conceito. Mesmo que seja informal, se a lógica estiver correta, considere aprovado.
+Retorne ESTRITAMENTE o formato JSON a seguir:
+{{
+  "correto": true ou false (boolean),
+  "feedback": "Um parágrafo curto (até 2 frases) explicando por que a resposta do aluno está certa ou como ele poderia melhorar caso tenha errado. Seja muito encorajador e amigável."
+}}
+""".strip()
+
+    raw, _ = _chamar_ia(prompt)
+
+    if raw and raw.startswith("```"):
+        raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+        raw = re.sub(r"```$", "", raw).strip()
+
+    if raw:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback no caso da IA falhar na correção
+    return {
+        "correto": True,
+        "feedback": "Tudo certo! Continue focado e vamos em frente."
+    }
 
 def classificar_erro(resposta_correta: str, resposta_usuario: str) -> str:
     if not resposta_usuario or len(resposta_usuario.strip()) < 4:
