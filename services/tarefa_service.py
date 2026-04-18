@@ -25,16 +25,12 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
     trilha_subtemas = plano.get("trilha_subtemas", [])
     progresso_trilha = plano.get("progresso_trilha", 0)
 
-    # Entregar em blocos (ex: 2 subtemas por vez, que equivale a 4 itens na lista já que cada subtema gera teoria + questoes)
-    # Como as tarefas tem "teoria" e "questoes", vamos entregar 4 itens da trilha.
-    blocos_por_dia = 4
+    # Entrega a trilha toda, sem limites de blocos por dia. O usuário faz no próprio ritmo.
+    # Pegamos tudo a partir do progresso atual. Se já terminou tudo, reentrega os últimos.
+    etapas_dinamicas = trilha_subtemas[progresso_trilha:]
 
-    etapas_dinamicas = trilha_subtemas[progresso_trilha : progresso_trilha + blocos_por_dia]
-
-    # Se chegamos ao fim e não há mais blocos, podemos reiniciar ou gerar algo extra.
-    # Por simplicidade, vamos entregar as últimas se passarem do limite.
     if not etapas_dinamicas and trilha_subtemas:
-        etapas_dinamicas = trilha_subtemas[-blocos_por_dia:]
+        etapas_dinamicas = trilha_subtemas[-4:] # Apenas um fallback para não dar tela em branco
 
     tarefas: list[dict] = []
 
