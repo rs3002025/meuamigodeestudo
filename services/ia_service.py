@@ -124,43 +124,36 @@ def gerar_conteudo(user_id: str, materia: str, tema: str, foco_delimitado: str =
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Atue como um Mestre Didático: um professor particular brilhante, incrivelmente didático e que domina a arte de ensinar.
+    prompt = f"""Você é um professor particular ensinando de forma clara e direta.
 
 Matéria: {materia}
 Tema: {tema}
 Foco Específico da Aula: {foco_delimitado}
 
 REGRA PRINCIPAL:
-- Ensine SOMENTE o tema informado e restrito ao "Foco Específico da Aula".
-- NÃO amplie o assunto, não ensine os passos seguintes, mantenha-se estritamente no escopo da aula.
+- Ensine SOMENTE o tema informado (restrito ao "Foco Específico da Aula")
+- NÃO explique conceitos mais básicos não solicitados
+- NÃO amplie o assunto
 
 Estrutura obrigatória:
-1) Explicação da teoria
-2) Como funciona na prática
-3) Exemplos resolvidos PASSO A PASSO
-4) Controle de Qualidade: Antes de finalizar a explicação, você deve agir como auditor e ter certeza de que ensinou de forma que uma pessoa com dificuldade entenderia 100%, sem ser vago ou incompleto.
+1) Explicação direta do tema
+2) Como funciona (regra/lógica)
+3) Exemplo claro (passo a passo)
+4) 2 ou 3 exercícios (varie os formatos: ex. aberta, múltipla escolha, verdadeiro/falso. Nunca dê a resposta no enunciado)
 
-Regras de Formatação (MUITO IMPORTANTE):
-- Use Markdown rico (cabeçalhos, negrito, itálico, listas, emojis).
-- Quebre muito bem os parágrafos. NÃO construa blocos gigantes e maciços de texto.
-- Crie um visual agradável para leitura em celular.
-
-Regras Didáticas:
-- Linguagem absurdamente simples, acessível e natural.
-- SEM jargões acadêmicos complicados.
-- PROFUNDIDADE SEM COMPLEXIDADE: Fale simples, mas não seja vago. Cubra o conteúdo necessário com maestria.
-- Durante a explicação (no JSON de 'explicacao'), insira pequenos exemplos práticos e resolvidos passo a passo para ilustrar a teoria enquanto você ensina.
-
-Exercícios (Regras):
-- Formule 2 ou 3 exercícios criativos.
-- VARIE OS FORMATOS: Crie um exercício de múltipla escolha (sem mostrar o gabarito), outro aberto, e outro como desafio prático ou de verdadeiro/falso.
-- NUNCA dê as respostas ou dicas das respostas no enunciado.
+Regras:
+- Linguagem simples, sem ser superficial, mas acessível e natural.
+- Sem linguagem acadêmica ou jargões complicados.
+- Sem fugir do tema e sem introduções amplas ou enrolações.
+- Use formatação Markdown (negrito, listas, quebras de parágrafo).
+- IMPORTANTE: Para fórmulas e equações matemáticas, utilize LaTeX padrão (ex: $x^2 + 2x$, $$x=\\frac{{-b \\pm \\sqrt{{\\Delta}}}}{{2a}}$$), o frontend está preparado para renderizar MathJax!
+- ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos, sua "auditoria", nem frases como "Controle de qualidade aprovado" no JSON de saída. Retorne apenas o conteúdo puro da aula.
 
 Retorne ESTRITAMENTE em JSON:
 {{
-  "explicacao": "A explicação completa, amigável, profunda (mas simples), bem espaçada e com exemplos passo a passo.",
-  "exemplo": "Um grande exemplo real aplicado ou analogia final que sela o conhecimento.",
-  "exercicios": ["...", "..."]
+  "explicacao": "A explicação direta, como funciona a lógica, quebrada em parágrafos.",
+  "exemplo": "Um exemplo claro e resolvido passo a passo ilustrando a teoria.",
+  "exercicios": ["Enunciado do ex 1...", "Enunciado do ex 2..."]
 }}
 """
 
@@ -287,8 +280,8 @@ Depois, monte um plano de estudos dividindo esse conteúdo em subtemas estrutura
 Tema: {tema}
 
 Regras:
-1. Analise o que é preciso para aprender todo o conteúdo necessário.
-2. Divida o tema em subtemas ordenados (máximo de 5 a 6 itens).
+1. Analise o que é preciso para aprender todo o conteúdo necessário sem deixar buracos no aprendizado.
+2. Divida o tema em subtemas ordenados. NÃO use limites artificiais (ex: não restrinja a 5 itens se o tema pedir 8 passos, nem invente 5 passos se 2 forem suficientes). Use a quantidade exata para cobrir o assunto do básico até a aplicação.
 3. A progressão deve ser altamente inteligente e lógica (do básico necessário até a aplicação).
 4. IMPORTANTE: No campo "nome", forneça APENAS o nome específico do subtema (ex: "Coordenadas e Proporcionalidade" ou "Gráficos"). NÃO REPETIR o nome do tema original junto (não faça "Função afim - Gráficos").
 5. Para que os conteúdos não se repitam depois, você DEVE definir exatamente qual é o "foco_delimitado" de cada subtema.

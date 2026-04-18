@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amigo de Estudo</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        startup: {
+          typeset: false
+        }
+      };
+    </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap');
 
@@ -572,11 +585,14 @@
           let title = task.materia;
           let sub = task.descricao || task.tema;
 
+          // Adiciona indicação clara de que é a Teoria ou Prática/Questões para evitar que o nó pareça duplicado
+          let tipoStr = task.tipo === 'questoes' ? '(Prática)' : '(Teoria)';
+
           // Se o nome do tema e da materia sao parecidos/repetidos, mostra so um com enfase
           if (title.toLowerCase() === sub.toLowerCase() || sub.toLowerCase().startsWith(title.toLowerCase())) {
-              label.innerHTML = `<span style="font-weight:800; color: #475569;">${sub}</span>`;
+              label.innerHTML = `<span style="font-weight:800; color: #475569;">${sub} <span style="font-size: 12px; color: #94a3b8; font-weight: normal;">${tipoStr}</span></span>`;
           } else {
-              label.innerHTML = `${title}<br><span style="font-weight:400; color: #64748b;">${sub}</span>`;
+              label.innerHTML = `${title}<br><span style="font-weight:400; color: #64748b;">${sub} <span style="font-size: 12px; color: #94a3b8;">${tipoStr}</span></span>`;
           }
 
           wrapper.appendChild(label);
@@ -596,7 +612,14 @@
       // ----------------------------------------------------------------------
       function startLesson(task) {
         state.lessonActive = task;
-        state.lessonStep = 0;
+
+        // Se a tarefa for de "questoes", pula a teoria e o exemplo e vai direto para o primeiro exercício (step 2)
+        if (task.tipo === 'questoes') {
+            state.lessonStep = 2;
+        } else {
+            // Se for de teoria, começa na explicação (step 0)
+            state.lessonStep = 0;
+        }
 
         hideAllScreens();
         $('screen-lesson').classList.remove('hidden');
@@ -614,10 +637,6 @@
         const btn = $('btn-lesson-action');
         $('err-lesson').textContent = '';
 
-        // If at the end, complete task via API
-        const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-        const totalSteps = 3 + exerciciosCount; // Explicacao(0), Exemplo(1), Exercicios(2..N+1), Referencias(N+2)
-
         // Validate answer if on an exercise step
         if (state.lessonStep >= 2) {
             const ans = $('lesson-answer').value.trim();
@@ -627,7 +646,14 @@
             }
         }
 
-        if (state.lessonStep >= totalSteps - 1) {
+        const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
+        const actualTotalSteps = 2 + exerciciosCount;
+
+        // Se o tipo é teoria, o fim da lição é no passo 1 (Exemplo)
+        // Se o tipo é questoes, o fim da lição é no último exercício
+        const isLastStep = state.lessonActive.tipo === 'teoria' ? state.lessonStep >= 1 : state.lessonStep >= actualTotalSteps - 1;
+
+        if (isLastStep) {
           try {
             btn.textContent = 'Concluindo...'; btn.disabled = true;
             const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: state.lessonActive.id });
@@ -652,12 +678,18 @@
         const task = state.lessonActive;
         const conteudo = task.conteudo;
         const exercicios = conteudo.exercicios || [];
-        const totalSteps = 3 + exercicios.length;
+
+        const actualTotalSteps = 2 + exercicios.length;
 
         // Update Progress Bar
-        // Removes Reference Screen -> 2 fixed screens (Explicacao, Exemplo) + exercises
-        const actualTotalSteps = 2 + exercicios.length;
-        const progPct = ((state.lessonStep + 1) / actualTotalSteps) * 100;
+        let progPct = 0;
+        if (task.tipo === 'teoria') {
+            progPct = ((state.lessonStep + 1) / 2) * 100;
+        } else {
+            // Questoes step goes from 2 to actualTotalSteps - 1
+            const exIdx = state.lessonStep - 2;
+            progPct = ((exIdx + 1) / exercicios.length) * 100;
+        }
         $('lesson-progress').style.width = `${progPct}%`;
 
         const badge = $('lesson-badge');
@@ -675,12 +707,14 @@
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Conceito Novo';
           contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.explicacao)}</div>`;
+          if (window.MathJax) MathJax.typesetPromise([contentDiv]);
           btn.textContent = 'Entendi';
         }
         else if (state.lessonStep === 1) {
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Exemplo Prático';
           contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.exemplo)}</div>`;
+          if (window.MathJax) MathJax.typesetPromise([contentDiv]);
           btn.textContent = 'Continuar';
         }
         else if (state.lessonStep >= 2 && state.lessonStep < 2 + exercicios.length) {
@@ -692,8 +726,11 @@
 
           // Tratando quebra de linha do banco para a div principal com estilos legíveis
           contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(exercicios[exIdx])}</div>`;
+          if (window.MathJax) MathJax.typesetPromise([contentDiv]);
 
-          if (state.lessonStep === actualTotalSteps - 1) {
+          // No tipo "questões", a lição acaba no último exercício
+          const isLastEx = state.lessonStep === actualTotalSteps - 1;
+          if (isLastEx) {
             btn.textContent = 'Verificar e Concluir';
           } else {
             btn.textContent = 'Verificar e Continuar';
@@ -738,12 +775,12 @@
                  contentDiv.appendChild(feedbackDiv);
 
                  if(evaluation.correto) {
-                     btn.textContent = state.lessonStep === actualTotalSteps - 1 ? 'Concluir' : 'Continuar';
+                     btn.textContent = isLastEx ? 'Concluir' : 'Continuar';
                      btn.disabled = false;
                      btn.onclick = advanceLessonFlow;
                  } else {
                      // Permite avançar mesmo errando
-                     btn.textContent = state.lessonStep === actualTotalSteps - 1 ? 'Concluir Mesmo Assim' : 'Continuar Mesmo Assim';
+                     btn.textContent = isLastEx ? 'Concluir Mesmo Assim' : 'Continuar Mesmo Assim';
                      btn.disabled = false;
                      btn.onclick = advanceLessonFlow;
 
@@ -772,11 +809,13 @@
 
       async function advanceLessonFlow() {
           const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-          const actualTotalSteps = 2 + exerciciosCount; // Explicacao(0), Exemplo(1), Exercicios(2..N+1)
+          const actualTotalSteps = 2 + exerciciosCount;
           const btn = $('btn-lesson-action');
           $('err-lesson').textContent = '';
 
-          if (state.lessonStep >= actualTotalSteps - 1) {
+          const isLastStep = state.lessonActive.tipo === 'teoria' ? state.lessonStep >= 1 : state.lessonStep >= actualTotalSteps - 1;
+
+          if (isLastStep) {
               try {
                 btn.textContent = 'Concluindo...'; btn.disabled = true;
                 const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: state.lessonActive.id });
