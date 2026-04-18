@@ -141,13 +141,16 @@ Estrutura obrigatória:
 3) Exemplo claro (passo a passo)
 4) 2 ou 3 exercícios (varie os formatos: ex. aberta, múltipla escolha, verdadeiro/falso. Nunca dê a resposta no enunciado)
 
-Regras:
+Regras e Recursos Visuais Obrigatórios:
 - Linguagem simples, direto ao ponto. Seja como um site de resumos escolares (ex: Brasil Escola).
-- NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas (ex: não ensine forma canônica de equações, foque na resolução clássica e prática).
+- NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas.
 - Sem fugir do tema e sem introduções amplas ou enrolações genéricas.
 - Use formatação Markdown (negrito, listas, quebras de parágrafo).
-- IMPORTANTE PARA MATEMÁTICA: Você DEVE escrever TODAS as fórmulas, equações e variáveis matemáticas entre Cifrões (ex: $x^2 + 2x$, $$f(x)=2x$$). É ABSOLUTAMENTE PROIBIDO usar colchetes como `[ ... ]` ou parênteses vazados para equações. Use apenas cifrão (`$` ou `$$`).
-- ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos, sua "auditoria", nem frases como "Controle de qualidade aprovado" no JSON de saída. Retorne apenas o conteúdo puro da aula.
+- IMPORTANTE PARA MATEMÁTICA: Você DEVE escrever TODAS as fórmulas, equações e variáveis matemáticas entre Cifrões (ex: $x^2 + 2x$, $$f(x)=2x$$). É ABSOLUTAMENTE PROIBIDO usar colchetes como `[ ... ]` para equações. Use apenas cifrão (`$` ou `$$`).
+- TABELAS E GRÁFICOS: Se o assunto envolver tabelas de valores (ex: x e y), crie tabelas em Markdown. Se envolver gráficos matemáticos, adicione uma imagem usando a URL do QuickChart: `![Gráfico](https://quickchart.io/chart?c={{type:'line',data:{{labels:[...],datasets:[{{data:[...]}}]}}}})`
+- IMAGENS ILUSTRATIVAS: Se for História, Literatura, Geografia ou Biologia, adicione ao menos uma foto no meio da explicação usando `![Ilustração](https://image.pollinations.ai/prompt/SEU_PROMPT_EM_INGLES_AQUI)`. Exemplo: `![Revolução Francesa](https://image.pollinations.ai/prompt/french-revolution-painting)`.
+- MAPAS MENTAIS E DIAGRAMAS: Sempre que for útil explicar um processo, linha do tempo ou fluxo, crie um diagrama usando blocos de código com a linguagem `mermaid`.
+- ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne apenas o conteúdo puro.
 
 Retorne ESTRITAMENTE em JSON:
 {{

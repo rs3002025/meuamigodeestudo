@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amigo de Estudo</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: false, theme: 'default' });
+      window.mermaid = mermaid;
+    </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
@@ -703,18 +708,35 @@
         const oldFeedback = document.getElementById('lesson-feedback');
         if (oldFeedback) oldFeedback.remove();
 
+        async function renderMarkdown(targetDiv, mdText) {
+          targetDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(mdText)}</div>`;
+          if (window.MathJax) {
+            await MathJax.typesetPromise([targetDiv]);
+          }
+          if (window.mermaid) {
+            const mermaidDivs = targetDiv.querySelectorAll('.language-mermaid');
+            for (let i = 0; i < mermaidDivs.length; i++) {
+              const el = mermaidDivs[i];
+              // Replace the code block with a div for mermaid to render into
+              const p = document.createElement('div');
+              p.className = 'mermaid';
+              p.textContent = el.textContent;
+              el.parentNode.replaceWith(p);
+            }
+            await window.mermaid.run({ nodes: targetDiv.querySelectorAll('.mermaid') }).catch(e => console.error(e));
+          }
+        }
+
         if (state.lessonStep === 0) {
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Conceito Novo';
-          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.explicacao)}</div>`;
-          if (window.MathJax) MathJax.typesetPromise([contentDiv]);
+          renderMarkdown(contentDiv, conteudo.explicacao);
           btn.textContent = 'Entendi';
         }
         else if (state.lessonStep === 1) {
           interactiveArea.classList.add('hidden');
           badge.textContent = 'Exemplo Prático';
-          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.exemplo)}</div>`;
-          if (window.MathJax) MathJax.typesetPromise([contentDiv]);
+          renderMarkdown(contentDiv, conteudo.exemplo);
           btn.textContent = 'Continuar';
         }
         else if (state.lessonStep >= 2 && state.lessonStep < 2 + exercicios.length) {
@@ -725,8 +747,7 @@
           badge.textContent = `Exercício ${exIdx + 1} de ${exercicios.length}`;
 
           // Tratando quebra de linha do banco para a div principal com estilos legíveis
-          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(exercicios[exIdx])}</div>`;
-          if (window.MathJax) MathJax.typesetPromise([contentDiv]);
+          renderMarkdown(contentDiv, exercicios[exIdx]);
 
           // No tipo "questões", a lição acaba no último exercício
           const isLastEx = state.lessonStep === actualTotalSteps - 1;
