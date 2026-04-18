@@ -603,7 +603,7 @@
 
         // If at the end, complete task via API
         const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-        const totalSteps = 2 + exerciciosCount; // Explicacao(0), Exemplo(1), Exercicios(2..N)
+        const totalSteps = 3 + exerciciosCount; // Explicacao(0), Exemplo(1), Exercicios(2..N+1), Referencias(N+2)
 
         // Validate answer if on an exercise step
         if (state.lessonStep >= 2) {
@@ -639,7 +639,7 @@
         const task = state.lessonActive;
         const conteudo = task.conteudo;
         const exercicios = conteudo.exercicios || [];
-        const totalSteps = 2 + exercicios.length;
+        const totalSteps = 3 + exercicios.length;
 
         // Update Progress Bar
         const progPct = ((state.lessonStep + 1) / totalSteps) * 100;
@@ -668,7 +668,7 @@
           contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.exemplo)}</div>`;
           btn.textContent = 'Continuar';
         }
-        else {
+        else if (state.lessonStep >= 2 && state.lessonStep < 2 + exercicios.length) {
           const exIdx = state.lessonStep - 2;
           interactiveArea.classList.remove('hidden');
           answerInput.value = ''; // Limpa resposta
@@ -739,13 +739,20 @@
           // Pula a função onclick de avanço padrão, usando a nossa acima para o step de exercício
           return;
         }
+        else {
+          // Último step: Referências e Mergulho Profundo
+          interactiveArea.classList.add('hidden');
+          badge.textContent = 'Curadoria do Mentor 🔎';
+          contentDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(conteudo.referencias || "### Fontes\nSem referências adicionais.")}</div>`;
+          btn.textContent = 'Concluir';
+        }
 
         btn.onclick = advanceLessonFlow;
       }
 
       async function advanceLessonFlow() {
           const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-          const totalSteps = 2 + exerciciosCount;
+          const totalSteps = 3 + exerciciosCount; // Explicacao(0), Exemplo(1), Exercicios(2..N+1), Referencias(N+2)
           const btn = $('btn-lesson-action');
           $('err-lesson').textContent = '';
 

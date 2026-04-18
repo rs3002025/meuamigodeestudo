@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from services.db import registrar_estudo, get_db_connection
-from services.ia_service import gerar_conteudo
+from services.ia_service import gerar_conteudo, gerar_trilha_dinamica
 from services.node_service import feedback_conclusao
 
 def _hoje() -> str:
@@ -22,30 +22,31 @@ def _temas_padrao(materia: str) -> list[str]:
 def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
     hoje = _hoje()
     materias = plano.get("materias") or []
+    objetivo = plano.get("objetivo", "Estudos Gerais")
 
     if not materias:
-        objetivo = plano.get("objetivo")
         materias = objetivo if isinstance(objetivo, list) else [str(objetivo)]
 
-    while len(materias) < 3:
-        materias.append(materias[-1] if materias else "estudos gerais")
+    # Dynamic AI Path Generation
+    etapas_dinamicas = gerar_trilha_dinamica(user_id, str(objetivo), materias)
 
-    tipos = ["teoria", "questoes", "revisao"]
     tarefas: list[dict] = []
 
-    for idx in range(3):
-        materia = materias[idx % len(materias)]
-        tema = _temas_padrao(materia)[idx % 3]
+    for idx, etapa in enumerate(etapas_dinamicas):
+        materia = etapa.get("materia", materias[0] if materias else "Geral")
+        tema = etapa.get("tema", "Fundamentos")
+        tipo = etapa.get("tipo", "teoria")
+
         conteudo = gerar_conteudo(user_id, materia, tema)
 
         tarefas.append(
             {
                 "id": f"{hoje}-{idx + 1}",
                 "ordem": idx + 1,
-                "tipo": tipos[idx],
+                "tipo": tipo,
                 "materia": materia,
                 "tema": tema,
-                "descricao": f"{materia} — {tema} ({tipos[idx]})",
+                "descricao": f"{materia} — {tema}",
                 "conteudo": conteudo,
                 "status": "pendente",
                 "podePular": False,
