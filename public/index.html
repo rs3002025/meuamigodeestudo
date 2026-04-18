@@ -560,11 +560,12 @@
           let nodeClass = 'locked';
           let icon = '🔒';
 
+          // FOR TESTING: UNLOCK ALL NODES
           if (isDone) {
             nodeClass = 'done';
             icon = '⭐';
-          } else if (!firstPendingFound) {
-            nodeClass = 'active';
+          } else {
+            nodeClass = 'active'; // Temporarily make all pending nodes active
             icon = '▶';
             firstPendingFound = true;
           }
@@ -578,9 +579,8 @@
           node.className = `task-node ${nodeClass}`;
           node.textContent = icon;
 
-          if (nodeClass === 'active') {
-            node.onclick = () => startLesson(task);
-          }
+          // FOR TESTING: ALL NODES CLICKABLE
+          node.onclick = () => startLesson(task);
 
           wrapper.appendChild(node);
 

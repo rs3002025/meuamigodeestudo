@@ -146,10 +146,10 @@ Regras e Recursos Visuais Obrigatórios:
 - NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas.
 - Sem fugir do tema e sem introduções amplas ou enrolações genéricas.
 - Use formatação Markdown (negrito, listas, quebras de parágrafo).
-- IMPORTANTE PARA MATEMÁTICA: Você DEVE escrever TODAS as fórmulas, equações e variáveis matemáticas entre Cifrões (ex: $x^2 + 2x$, $$f(x)=2x$$). É ABSOLUTAMENTE PROIBIDO usar colchetes como `[ ... ]` para equações. Use apenas cifrão (`$` ou `$$`).
-- TABELAS E GRÁFICOS: Se o assunto envolver tabelas de valores (ex: x e y), crie tabelas em Markdown. Se envolver gráficos matemáticos, adicione uma imagem usando a URL do QuickChart: `![Gráfico](https://quickchart.io/chart?c={{type:'line',data:{{labels:[...],datasets:[{{data:[...]}}]}}}})`
+- IMPORTANTE PARA MATEMÁTICA: Você DEVE escrever TODAS as fórmulas, equações e variáveis matemáticas entre Cifrões duplos (ex: $$x^2 + 2x$$) ou simples (ex: $x^2$). É ABSOLUTAMENTE PROIBIDO usar colchetes isolados ou notação `\[ ... \]` ou `\( ... \)` para equações, pois quebra o frontend. Use estritamente `$ ... $` ou `$$ ... $$`.
+- TABELAS E GRÁFICOS: Se o assunto envolver tabelas de valores (ex: x e y), crie tabelas em Markdown. Se envolver gráficos matemáticos, adicione uma imagem usando a URL do QuickChart com o formato correto e codificado: `![Gráfico](https://quickchart.io/chart?c={{type:'line',data:{{labels:[...],datasets:[{{data:[...]}}]}}}})` (lembre-se de codificar a URL se necessário, e usar JSON válido dentro da URL).
 - IMAGENS ILUSTRATIVAS: Se for História, Literatura, Geografia ou Biologia, adicione ao menos uma foto no meio da explicação usando `![Ilustração](https://image.pollinations.ai/prompt/SEU_PROMPT_EM_INGLES_AQUI)`. Exemplo: `![Revolução Francesa](https://image.pollinations.ai/prompt/french-revolution-painting)`.
-- MAPAS MENTAIS E DIAGRAMAS: Sempre que for útil explicar um processo, linha do tempo ou fluxo, crie um diagrama usando blocos de código com a linguagem `mermaid`.
+- MAPAS MENTAIS E DIAGRAMAS: Sempre que for útil explicar um processo, linha do tempo ou fluxo, crie um diagrama usando blocos de código com a linguagem `mermaid` (certifique-se de que a sintaxe do mermaid está correta e evite caracteres especiais soltos).
 - ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne apenas o conteúdo puro.
 
 Retorne ESTRITAMENTE em JSON:
@@ -277,19 +277,18 @@ def talvez_gerar_avaliacao_invisivel(
 
 def gerar_estrutura_tema(tema: str) -> list[dict]:
     prompt = f"""
-Sua tarefa é analisar o tema principal abaixo e deduzir TUDO o que é necessário para aprender esse conteúdo de forma prática, direta e focada no nível escolar/Ensino Médio.
-Depois, monte um plano de estudos dividindo esse conteúdo em subtemas estruturados.
+Sua tarefa é dividir o tema principal em subtemas.
 
 Tema: {tema}
 
-Regras:
-1. Analise o que é preciso para aprender o conteúdo de forma prática e aplicada.
-2. DIRETO AO PONTO: Assuma que o aluno já tem a base. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial (Ex: se o tema for Equação Quadrática, não ensine plano cartesiano). Comece direto no assunto.
-3. NÍVEL DE ENSINO MÉDIO: NÃO gere tópicos de aprofundamento acadêmico inútil (ex: forma canônica, deduções complexas de fórmulas). Foque no feijão com arroz: o que é, como identificar, formas completas/incompletas, fórmulas famosas (ex: Bhaskara, Soma e Produto) e resolução prática.
-4. Divida o tema em subtemas ordenados. Use a quantidade exata para cobrir o assunto sem enrolação.
-5. A progressão deve ser ágil: Definição/Identificação -> Métodos de Resolução -> Problemas Aplicados.
+Regras ABSOLUTAS:
+1. Você DEVE quebrar o tema em NO MÁXIMO 5 ou 6 itens no total.
+2. Seja EXTREMAMENTE conciso. Divida apenas o conteúdo principal.
+3. DIRETO AO PONTO: Assuma que o aluno já tem a base. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial (Ex: se o tema for Equação Quadrática, não ensine plano cartesiano). Comece direto no assunto da Equação Quadrática.
+4. NÍVEL DE ENSINO MÉDIO: NÃO gere tópicos de aprofundamento acadêmico inútil.
+5. A progressão deve ser ágil e lógica.
 6. IMPORTANTE: No campo "nome", forneça APENAS o nome específico do subtema curto e claro.
-7. Para que os conteúdos não se repitam depois, você DEVE definir exatamente qual é o "foco_delimitado" de cada subtema.
+7. O campo "foco_delimitado" serve para restringir a IA que vai gerar o conteúdo do subtema.
 
 Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
 {{
