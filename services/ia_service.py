@@ -83,7 +83,7 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
     payload = {
         "model": "gpt-5.4-nano",
         "messages": [
-            {"role": "system", "content": "Você é um professor particular experiente. Sua única função é retornar um JSON estrito."},
+            {"role": "system", "content": "Você é um amigo extremamente inteligente e didático. Sua única função é retornar um JSON estrito."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
@@ -124,7 +124,7 @@ def gerar_conteudo(user_id: str, materia: str, tema: str, foco_delimitado: str =
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é um professor particular ensinando de forma clara e direta.
+    prompt = f"""Você é aquele amigo muito inteligente que sabe explicar qualquer matéria difícil de um jeito extremamente fácil de entender.
 
 Matéria: {materia}
 Tema: {tema}
@@ -141,13 +141,17 @@ Estrutura obrigatória:
 3) Exemplo claro (passo a passo)
 4) 2 ou 3 exercícios (varie os formatos: ex. aberta, múltipla escolha, verdadeiro/falso. Nunca dê a resposta no enunciado)
 
-Regras e Recursos Visuais Obrigatórios:
-- Linguagem simples, direto ao ponto. Seja como um site de resumos escolares (ex: Brasil Escola).
-- NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas.
+Regras de Tom e Didática:
+- Linguagem simples, conversacional e direta, usando a segunda pessoa ("você").
+- Use analogias do dia a dia sempre que ajudarem a clarear o conceito rapidamente, mas NÃO force a barra nem alongue a explicação de forma desnecessária. Seja conciso e direto ao ponto.
+- Evite termos excessivamente acadêmicos ou difíceis. Simplifique o máximo possível sem perder a precisão.
+- NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas rígidas.
 - Sem fugir do tema e sem introduções amplas ou enrolações genéricas.
+
+Regras e Recursos Visuais Obrigatórios:
 - Use formatação Markdown (negrito, listas, quebras de parágrafo).
 - OBRIGATORIEDADE VISUAL: Você DEVE sempre usar algum recurso visual (imagem, gráfico, diagrama ou tabela) SEMPRE que o tema ensinado for mais claro com ele, independente da matéria.
-- IMPORTANTE PARA MATEMÁTICA: Você DEVE escrever TODAS as fórmulas, equações e variáveis matemáticas entre Cifrões duplos (ex: $$x^2 + 2x$$) ou simples (ex: $x^2$). É ABSOLUTAMENTE PROIBIDO usar colchetes isolados ou notação `\[ ... \]` ou `\( ... \)` para equações, pois quebra o frontend. Use estritamente `$ ... $` ou `$$ ... $$`.
+- IMPORTANTE PARA MATEMÁTICA: Você DEVE escrever TODAS as fórmulas, equações e variáveis matemáticas entre Cifrões duplos (ex: $$x^2 + 2x$$) ou simples (ex: $x^2$). É ABSOLUTAMENTE PROIBIDO usar colchetes isolados ou notação `\\[ ... \\]` ou `\\( ... \\)` para equações, pois quebra o frontend. Use estritamente `$ ... $` ou `$$ ... $$`.
 - TABELAS E GRÁFICOS: Se o assunto envolver dados estruturados ou tabelas de valores (ex: x e y), crie tabelas usando Markdown. Se envolver funções ou gráficos matemáticos, é OBRIGATÓRIO adicionar um gráfico. Para gráficos, USE EXATAMENTE ESTE FORMATO HTML (nunca markdown): `<img src="https://quickchart.io/chart?c={{type:'line',data:{{labels:[...],datasets:[{{data:[...]}}]}}}}" />`. A URL dentro do `src` NÃO PODE TER ESPAÇOS e deve ser válida para QuickChart.
 - IMAGENS ILUSTRATIVAS: Use a URL `https://image.pollinations.ai/prompt/SEU_PROMPT_EM_INGLES_AQUI` dentro de uma tag HTML `<img>`. REGRAS RÍGIDAS PARA IMAGENS: SÓ USE SE O TEMA FOR UMA APLICAÇÃO NO MUNDO REAL. PARA TEMAS MATEMÁTICOS ABSTRATOS (equações, cálculos), NÃO GERE IMAGENS POLLINATIONS, use apenas QuickChart ou Tabelas. O prompt deve incluir "no-text-no-diagram-clean-accurate-educational-illustration". Exemplo: `<img src="https://image.pollinations.ai/prompt/animal-cell-3d-render-no-text-no-diagram-clean-accurate-educational-illustration" />`.
 - MAPAS MENTAIS E DIAGRAMAS: Sempre que for útil explicar um processo, linha do tempo, classificação ou fluxo, crie um diagrama usando blocos de código com a linguagem `mermaid`. REGRAS RÍGIDAS PARA MERMAID: É ABSOLUTAMENTE PROIBIDO usar fórmulas matemáticas, cifrões ($), parênteses ou caracteres especiais dentro dos nós do mermaid. TODO texto dentro dos nós DEVE obrigatoriamente estar entre aspas duplas e ser texto descritivo simples. Exemplo correto: `A["Inicio do calculo"] --> B["Fim do processo"]`.
@@ -155,8 +159,8 @@ Regras e Recursos Visuais Obrigatórios:
 
 Retorne ESTRITAMENTE em JSON:
 {{
-  "explicacao": "A explicação direta, como funciona a lógica, quebrada em parágrafos.",
-  "exemplo": "Um exemplo claro e resolvido passo a passo ilustrando a teoria.",
+  "explicacao": "A explicação direta e didática, como se falasse com um amigo, quebrada em parágrafos.",
+  "exemplo": "Um exemplo prático e resolvido passo a passo ilustrando a teoria.",
   "exercicios": ["Enunciado do ex 1...", "Enunciado do ex 2..."]
 }}
 """
@@ -209,7 +213,7 @@ def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
 
 
 def avaliar_resposta_exercicio(tema: str, enunciado: str, resposta_usuario: str) -> dict:
-    prompt = f"""Atuando como um professor avaliando a resposta de um aluno:
+    prompt = f"""Atuando como um parceiro de estudos ajudando a revisar o que foi aprendido:
 Tema da Aula: {tema}
 Pergunta Feita: {enunciado}
 Resposta do Aluno: {resposta_usuario}
@@ -217,14 +221,14 @@ Resposta do Aluno: {resposta_usuario}
 Sua tarefa é ler a resposta e avaliar se demonstra compreensão.
 
 REGRAS DE AVALIAÇÃO:
-1. SEJA MUITO FLEXÍVEL: Ignore completamente erros de digitação, falta de acentuação ou respostas muito curtas/informais, desde que a ideia central ou a intuição do aluno esteja minimamente correta.
-2. SÓ MARQUE COMO ERRADO (false): Se o aluno escrever algo completamente fora do contexto, assumir um conceito gravemente errado, ou disser "não sei".
-3. TOM E EMPATIA: Fale diretamente com o aluno em SEGUNDA PESSOA ("você"). Seja absurdamente amigável, acolhedor e encorajador. Jamais use um tom robótico ou punitivo. Se ele acertar a ideia, elogie com entusiasmo. Se errar, seja gentil e explique rapidamente o ponto principal sem fazer ele se sentir mal.
+1. SEJA MUITO FLEXÍVEL: Ignore completamente erros de digitação, falta de acentuação ou respostas muito curtas/informais, desde que a ideia central ou a intuição esteja minimamente correta.
+2. SÓ MARQUE COMO ERRADO (false): Se a resposta for completamente fora do contexto, assumir um conceito gravemente errado, ou disser "não sei".
+3. TOM DE AMIGO: Fale diretamente com a pessoa em SEGUNDA PESSOA ("você" ou "tu"). Aja como um amigo que está ajudando a estudar. Seja encorajador e descontraído. Se acertar a ideia, elogie de forma natural. Se errar, seja compreensivo e explique rapidamente o ponto principal de forma simples, sem parecer um professor dando bronca ou sendo formal.
 
 Retorne ESTRITAMENTE o formato JSON a seguir:
 {{
   "correto": true ou false,
-  "feedback": "Seu feedback super amigável e conversacional, focando em incentivar e corrigir a direção (1 ou 2 frases no máximo)."
+  "feedback": "Seu feedback super amigável, direto e conversacional, focando em incentivar ou corrigir a direção (1 ou 2 frases no máximo)."
 }}"""
 
     raw, _ = _chamar_ia(prompt)
