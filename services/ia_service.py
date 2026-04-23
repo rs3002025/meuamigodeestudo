@@ -213,10 +213,10 @@ Retorne ESTRITAMENTE em JSON:
   "explicacao": "A explicação direta e didática, como se falasse com um amigo, quebrada em parágrafos.",
   "exemplo": "Um exemplo prático e resolvido passo a passo ilustrando a teoria.",
   "exercicios": ["Enunciado do ex 1...", "Enunciado do ex 2..."],
-  "visual": {
+  "visual": {{
     "tipo": "grafico",
     "descricao": "parábola mostrando concavidade para cima e para baixo"
-  }
+  }}
 }}
 """
 
