@@ -124,27 +124,7 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         return None, f"Retorno inesperado da IA: {e}"
 
 
-def gerar_grafico_por_contexto(descricao: str) -> str:
-    desc = descricao.lower()
-
-    if "parabola" in desc or "parábola" in desc:
-        return """
-<br>
-<img src="https://quickchart.io/chart?c={type:'line',data:{labels:[-2,-1,0,1,2],datasets:[{data:[4,1,0,1,4]}]}}" />
-<br>
-"""
-
-    if "reta" in desc:
-        return """
-<br>
-<img src="https://quickchart.io/chart?c={type:'line',data:{labels:[0,1,2,3],datasets:[{data:[1,2,3,4]}]}}" />
-<br>
-"""
-
-    return ""
-
-def gerar_tabela_padrao() -> str:
-    return "\n\n| Item | Valor |\n|---|---|\n| Exemplo A | 10 |\n| Exemplo B | 20 |\n\n"
+from services.visual_engine import render_visual
 
 def gerar_mensagem_amigo(tema: str) -> str:
     mensagens = [
@@ -198,13 +178,17 @@ Regras Obrigatórias e Didática de Prova:
 - Sempre inclua os pontos que mais caem em prova quando aplicável.
 - Se for matemática: inclua pelo menos uma forma de resolução típica de prova.
 - IMPORTANTE PARA MATEMÁTICA E TEXTO FLUIDO: Use APENAS Cifrões simples (ex: `$x^2$`) para equações DENTRO de frases, para não quebrar o texto. Use Cifrões duplos (ex: `$$x^2 + 2x$$`) APENAS para grandes fórmulas isoladas e centralizadas. NUNCA misture `$$` no meio de uma frase. É ABSOLUTAMENTE PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
-SINALIZAÇÃO VISUAL (OBRIGATÓRIO):
-Você deve indicar se o conteúdo PRECISA de apoio visual para ficar claro.
-Regras:
-- Use "grafico" para funções, curvas, comportamento matemático
-- Use "tabela" para comparações ou organização de dados
-- Use "nenhum" se não precisar
-Você NÃO deve gerar o gráfico em markdown, HTML ou Pollinations, apenas descrever. O backend renderizará com base nesse sinal.
+SINALIZAÇÃO VISUAL INTELIGENTE (OBRIGATÓRIO):
+Você deve decidir se o conteúdo precisa de apoio visual.
+Tipos possíveis:
+- "grafico" -> funções, crescimento, comportamento
+- "tabela" -> comparação, organização
+- "diagrama" -> fluxo, processo, relações
+- "nenhum" -> quando não agrega
+
+IMPORTANTE:
+- NÃO gere HTML nem imagem, o backend renderizará com base nesse sinal.
+- Apenas descreva e, se possível, forneça os DADOS ESTRUTURADOS.
 
 ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne apenas o conteúdo puro.
 
@@ -215,7 +199,13 @@ Retorne ESTRITAMENTE em JSON:
   "exercicios": ["Enunciado do ex 1...", "Enunciado do ex 2..."],
   "visual": {{
     "tipo": "grafico",
-    "descricao": "parábola mostrando concavidade para cima e para baixo"
+    "descricao": "parábola mostrando concavidade para cima e para baixo",
+    "dados": {{
+      "x": [-2, -1, 0, 1, 2],
+      "y": [4, 1, 0, 1, 4],
+      "labels": ["Item 1", "Item 2"],
+      "valores": [["A", 10], ["B", 20]]
+    }}
   }}
 }}
 """
@@ -238,11 +228,10 @@ Retorne ESTRITAMENTE em JSON:
                 "origem": "ia",
             }
             visual = parsed.get("visual", {})
-            if content.get("explicacao"):
-                if visual.get("tipo") == "grafico":
-                    content["explicacao"] += gerar_grafico_por_contexto(visual.get("descricao", ""))
-                elif visual.get("tipo") == "tabela":
-                    content["explicacao"] += gerar_tabela_padrao()
+            if content.get("explicacao") and visual:
+                bloco_visual = render_visual(visual)
+                if bloco_visual:
+                    content["explicacao"] += bloco_visual
         except json.JSONDecodeError as e:
             print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
             content = _fallback_conteudo(materia, tema, f"JSON Inválido: {e}")
