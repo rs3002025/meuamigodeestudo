@@ -16,6 +16,15 @@ def _titulo(txt: str) -> str:
     return txt.strip().lower().capitalize()
 
 
+def limpar_unicode_invalido(obj):
+    if isinstance(obj, str):
+        return obj.replace("\u0000", "")
+    elif isinstance(obj, list):
+        return [limpar_unicode_invalido(i) for i in obj]
+    elif isinstance(obj, dict):
+        return {k: limpar_unicode_invalido(v) for k, v in obj.items()}
+    return obj
+
 def normalizar_lista_conteudos(raw: str) -> list[str]:
     cleaned = (raw or "").replace(";", ",")
     if "," in cleaned:
@@ -115,37 +124,46 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         return None, f"Retorno inesperado da IA: {e}"
 
 
-def precisa_grafico(tema: str) -> bool:
-    palavras = [
-        "função", "grafico", "gráfico", "reta", "parabola", "parábola",
-        "equação", "curva"
-    ]
-    return any(p in tema.lower() for p in palavras)
+def gerar_grafico_por_contexto(descricao: str) -> str:
+    desc = descricao.lower()
 
-def gerar_grafico_padrao() -> str:
-    return """
+    if "parabola" in desc or "parábola" in desc:
+        return """
 <br>
-<img src="https://quickchart.io/chart?c={type:'line',data:{labels:[1,2,3,4],datasets:[{data:[1,4,9,16]}]}}" />
+<img src="https://quickchart.io/chart?c={type:'line',data:{labels:[-2,-1,0,1,2],datasets:[{data:[4,1,0,1,4]}]}}" />
 <br>
 """
 
-def gerar_mensagem_amigo() -> str:
+    if "reta" in desc:
+        return """
+<br>
+<img src="https://quickchart.io/chart?c={type:'line',data:{labels:[0,1,2,3],datasets:[{data:[1,2,3,4]}]}}" />
+<br>
+"""
+
+    return ""
+
+def gerar_tabela_padrao() -> str:
+    return "\n\n| Item | Valor |\n|---|---|\n| Exemplo A | 10 |\n| Exemplo B | 20 |\n\n"
+
+def gerar_mensagem_amigo(tema: str) -> str:
     mensagens = [
-        "isso aqui cai direto em prova, presta atenção nisso",
-        "se tu entender isso aqui, já resolve muita questão",
-        "esse ponto aqui é onde a maioria erra",
-        "isso aqui é chave pra prova, foca nisso"
+        f"isso aqui em {tema} cai direto em prova, presta atenção nisso",
+        f"se tu entender essa parte de {tema}, já resolve muita questão",
+        f"essa parte de {tema} é onde a maioria erra",
+        f"isso aqui é chave pra prova, foca nisso"
     ]
     return random.choice(mensagens)
 
 def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     cached = get_cached_content(materia, tema, foco_delimitado)
     if cached:
-        return {
-            "mensagem": gerar_mensagem_amigo(),
-            "conteudo": cached,
-            "cache": True
-        }
+        # Prependa a mensagem amigável no início da explicação para não quebrar o frontend
+        mensagem = gerar_mensagem_amigo(tema)
+        explicacao = cached.get("explicacao", "")
+        if not explicacao.startswith(f"**{mensagem}**"):
+            cached["explicacao"] = f"**{mensagem}**\n\n{explicacao}"
+        return {**cached, "cache": True}
 
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
@@ -180,14 +198,25 @@ Regras Obrigatórias e Didática de Prova:
 - Sempre inclua os pontos que mais caem em prova quando aplicável.
 - Se for matemática: inclua pelo menos uma forma de resolução típica de prova.
 - IMPORTANTE PARA MATEMÁTICA E TEXTO FLUIDO: Use APENAS Cifrões simples (ex: `$x^2$`) para equações DENTRO de frases, para não quebrar o texto. Use Cifrões duplos (ex: `$$x^2 + 2x$$`) APENAS para grandes fórmulas isoladas e centralizadas. NUNCA misture `$$` no meio de uma frase. É ABSOLUTAMENTE PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
-- ABSOLUTAMENTE PROIBIDO DECISÕES VISUAIS: VOCÊ ESTÁ ESTRITAMENTE PROIBIDO DE GERAR GRÁFICOS (QuickChart), IMAGENS (Pollinations) OU DIAGRAMAS (Mermaid). O backend cuidará disso. Gere apenas texto e tabelas Markdown.
-- ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne apenas o conteúdo puro.
+SINALIZAÇÃO VISUAL (OBRIGATÓRIO):
+Você deve indicar se o conteúdo PRECISA de apoio visual para ficar claro.
+Regras:
+- Use "grafico" para funções, curvas, comportamento matemático
+- Use "tabela" para comparações ou organização de dados
+- Use "nenhum" se não precisar
+Você NÃO deve gerar o gráfico em markdown, HTML ou Pollinations, apenas descrever. O backend renderizará com base nesse sinal.
+
+ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne apenas o conteúdo puro.
 
 Retorne ESTRITAMENTE em JSON:
 {{
   "explicacao": "A explicação direta e didática, como se falasse com um amigo, quebrada em parágrafos.",
   "exemplo": "Um exemplo prático e resolvido passo a passo ilustrando a teoria.",
-  "exercicios": ["Enunciado do ex 1...", "Enunciado do ex 2..."]
+  "exercicios": ["Enunciado do ex 1...", "Enunciado do ex 2..."],
+  "visual": {
+    "tipo": "grafico",
+    "descricao": "parábola mostrando concavidade para cima e para baixo"
+  }
 }}
 """
 
@@ -208,8 +237,12 @@ Retorne ESTRITAMENTE em JSON:
                 "exercicios": parsed.get("exercicios") or _fallback_conteudo(materia, tema)["exercicios"],
                 "origem": "ia",
             }
-            if precisa_grafico(tema) and content.get("explicacao"):
-                content["explicacao"] += gerar_grafico_padrao()
+            visual = parsed.get("visual", {})
+            if content.get("explicacao"):
+                if visual.get("tipo") == "grafico":
+                    content["explicacao"] += gerar_grafico_por_contexto(visual.get("descricao", ""))
+                elif visual.get("tipo") == "tabela":
+                    content["explicacao"] += gerar_tabela_padrao()
         except json.JSONDecodeError as e:
             print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
             content = _fallback_conteudo(materia, tema, f"JSON Inválido: {e}")
@@ -220,13 +253,14 @@ Retorne ESTRITAMENTE em JSON:
 
     # IMPORTANTE: Nunca cacheie o fallback, senão o assunto ficará permanentemente inacessível mesmo após o erro resolver.
     if not is_fallback:
+        content = limpar_unicode_invalido(content)
         set_cached_content(materia, tema, foco_delimitado, content)
 
-    return {
-        "mensagem": gerar_mensagem_amigo(),
-        "conteudo": content,
-        "cache": False
-    }
+    mensagem = gerar_mensagem_amigo(tema)
+    explicacao = content.get("explicacao", "")
+    content["explicacao"] = f"**{mensagem}**\n\n{explicacao}"
+
+    return {**content, "cache": False}
 
 
 def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
