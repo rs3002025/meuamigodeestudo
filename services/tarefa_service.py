@@ -34,13 +34,20 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
 
     tarefas: list[dict] = []
 
+    from services.db import increment_ia_daily_count
+
     for idx, etapa in enumerate(etapas_dinamicas):
         materia = etapa.get("materia", "Geral")
         tema = etapa.get("tema", "Fundamentos")
         tipo = etapa.get("tipo", "teoria")
         foco_delimitado = etapa.get("foco_delimitado", "")
 
-        conteudo = gerar_conteudo(user_id, materia, tema, foco_delimitado)
+        conteudo = gerar_conteudo(materia, tema, foco_delimitado)
+
+        # O incremento era feito dentro do gerar_conteudo original.
+        # Agora o IA service não sabe do usuário, então controlamos o rate aqui
+        if not conteudo.get("cache"):
+            increment_ia_daily_count(user_id)
 
         tarefas.append(
             {
