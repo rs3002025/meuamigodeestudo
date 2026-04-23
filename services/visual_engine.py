@@ -1,65 +1,50 @@
-import urllib.parse
+import sympy as sp
+import numpy as np
 
-def render_visual(visual: dict) -> str:
-    if not visual:
-        return ""
+def gerar_pontos_funcao(funcao: str):
+    try:
+        # Prepara a string da função
+        expr_str = funcao.lower().replace("y=", "").replace("^", "**")
 
-    tipo = visual.get("tipo")
+        # Usa sympy para fazer parse seguro da expressão matemática e avaliar para os valores de x
+        x_sym = sp.Symbol('x')
+        expr = sp.sympify(expr_str)
 
-    if tipo == "grafico":
-        return gerar_grafico_dinamico(visual)
+        # Cria uma lista de 50 pontos entre -10 e 10
+        x_vals = np.linspace(-10, 10, 50)
+        y_vals = []
 
-    if tipo == "tabela":
-        return gerar_tabela_dinamica(visual)
+        for x_val in x_vals:
+            # Avalia a expressão para o valor de x atual
+            y = expr.evalf(subs={x_sym: x_val})
+            y_vals.append(float(y))
 
-    if tipo == "diagrama":
-        return gerar_diagrama(visual)
+        # Precisamos retornar como list() para que a serialização JSONB do db.py não quebre
+        return [float(x) for x in x_vals], y_vals
 
-    return ""
+    except Exception as e:
+        print("Erro função:", e)
+        return [], []
 
+def processar_visual(visual: dict):
+    if visual.get("tipo") != "grafico":
+        return visual
 
-def gerar_grafico_dinamico(visual: dict) -> str:
-    dados = visual.get("dados", {})
+    # Se a IA informar a função matemática, nós geramos os pontos pra ela.
+    # Ex: "funcao": "y = x^2 - 4x + 3"
+    funcao_str = visual.get("funcao") or visual.get("dados", {}).get("funcao")
+    if funcao_str:
+        x, y = gerar_pontos_funcao(funcao_str)
+        # Cria ou recria o 'dados' com as arrays que o frontend precisa
+        visual["dados"] = {"x": x, "y": y}
 
-    x = dados.get("x", [1, 2, 3, 4])
-    y = dados.get("y", [1, 4, 9, 16])
+    return visual
 
-    # Utilizando string literal sem quebrar o json do quickchart
-    chart = {
-        "type": "line",
-        "data": {
-            "labels": x,
-            "datasets": [{"label": "Valor", "data": y}]
-        }
-    }
+def processar_aula(parsed: dict) -> dict:
+    blocos = parsed.get("blocos", [])
 
-    # Substituir aspas duplas por aspas simples ou remover espaços excessivos ajuda nas urls,
-    # ou podemos usar urlencode no json dump.
-    import json
-    chart_json = json.dumps(chart)
-    chart_url = "https://quickchart.io/chart?c=" + urllib.parse.quote(chart_json)
+    for bloco in blocos:
+        if bloco["tipo"] == "visual" and "visual" in bloco:
+            bloco["visual"] = processar_visual(bloco["visual"])
 
-    return f"""
-<br>
-<img src="{chart_url}" />
-<br>
-"""
-
-
-def gerar_tabela_dinamica(visual: dict) -> str:
-    dados = visual.get("dados", {})
-    labels = dados.get("labels", ["Item", "Valor"])
-    valores = dados.get("valores", [["Exemplo A", 10], ["Exemplo B", 20]])
-
-    tabela = "\n\n|" + "|".join(labels) + "|\n"
-    tabela += "|" + "|".join(["---"] * len(labels)) + "|\n"
-
-    for linha in valores:
-        tabela += "|" + "|".join(map(str, linha)) + "|\n"
-
-    return tabela + "\n\n"
-
-def gerar_diagrama(visual: dict) -> str:
-    # Fallback simples caso IA peça diagrama. Na v2 podemos renderizar mermaid real
-    # se o front aguentar, ou apenas formatar. Por segurança, se não suportar bem:
-    return ""
+    return {"blocos": blocos}

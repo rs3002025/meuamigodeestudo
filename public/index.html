@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amigo de Estudo</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module">
       import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
       mermaid.initialize({ startOnLoad: false, theme: 'default' });
@@ -692,37 +693,9 @@
         }
       };
 
-      function renderLessonStep() {
-        const task = state.lessonActive;
-        const conteudo = task.conteudo;
-        const exercicios = conteudo.exercicios || [];
 
-        const actualTotalSteps = 2 + exercicios.length;
-
-        // Update Progress Bar
-        let progPct = 0;
-        if (task.tipo === 'teoria') {
-            progPct = ((state.lessonStep + 1) / 2) * 100;
-        } else {
-            // Questoes step goes from 2 to actualTotalSteps - 1
-            const exIdx = state.lessonStep - 2;
-            progPct = ((exIdx + 1) / exercicios.length) * 100;
-        }
-        $('lesson-progress').style.width = `${progPct}%`;
-
-        const badge = $('lesson-badge');
-        const contentDiv = $('lesson-content');
-        const btn = $('btn-lesson-action');
-
-        const interactiveArea = $('lesson-interactive-area');
-        const answerInput = $('lesson-answer');
-
-        // Remove qualquer feedback antigo
-        const oldFeedback = document.getElementById('lesson-feedback');
-        if (oldFeedback) oldFeedback.remove();
-
-        async function renderMarkdown(targetDiv, mdText) {
-          targetDiv.innerHTML = `<div id="lesson-text" class="markdown-body">${marked.parse(mdText)}</div>`;
+      async function renderMarkdown(targetDiv, mdText) {
+          targetDiv.innerHTML = `<div class="markdown-body">${marked.parse(mdText)}</div>`;
           if (window.MathJax) {
             await MathJax.typesetPromise([targetDiv]);
           }
@@ -730,7 +703,6 @@
             const mermaidDivs = targetDiv.querySelectorAll('.language-mermaid');
             for (let i = 0; i < mermaidDivs.length; i++) {
               const el = mermaidDivs[i];
-              // Replace the code block with a div for mermaid to render into
               const p = document.createElement('div');
               p.className = 'mermaid';
               p.textContent = el.textContent;
@@ -738,134 +710,274 @@
             }
             await window.mermaid.run({ nodes: targetDiv.querySelectorAll('.mermaid') }).catch(e => console.error(e));
           }
-        }
-
-        if (state.lessonStep === 0) {
-          interactiveArea.classList.add('hidden');
-          badge.textContent = 'Conceito Novo';
-          renderMarkdown(contentDiv, conteudo.explicacao);
-          btn.textContent = 'Entendi';
-        }
-        else if (state.lessonStep === 1) {
-          interactiveArea.classList.add('hidden');
-          badge.textContent = 'Exemplo Prático';
-          renderMarkdown(contentDiv, conteudo.exemplo);
-          btn.textContent = 'Continuar';
-        }
-        else if (state.lessonStep >= 2 && state.lessonStep < 2 + exercicios.length) {
-          const exIdx = state.lessonStep - 2;
-          interactiveArea.classList.remove('hidden');
-          answerInput.value = ''; // Limpa resposta
-
-          badge.textContent = `Exercício ${exIdx + 1} de ${exercicios.length}`;
-
-          // Tratando quebra de linha do banco para a div principal com estilos legíveis
-          renderMarkdown(contentDiv, exercicios[exIdx]);
-
-          // No tipo "questões", a lição acaba no último exercício
-          const isLastEx = state.lessonStep === actualTotalSteps - 1;
-          if (isLastEx) {
-            btn.textContent = 'Verificar e Concluir';
-          } else {
-            btn.textContent = 'Verificar e Continuar';
-          }
-
-          // Mudamos o comportamento do botão para validar primeiro
-          btn.onclick = async () => {
-             $('err-lesson').textContent = '';
-             const ans = answerInput.value.trim();
-             if(!ans) {
-                 $('err-lesson').textContent = 'Você precisa escrever uma resposta!';
-                 return;
-             }
-
-             try {
-                 btn.textContent = 'Avaliando...';
-                 btn.disabled = true;
-
-                 const evaluation = await post(`/api/tarefas/${state.userId}/avaliar-resposta`, {
-                     tema: state.lessonActive.tema,
-                     enunciado: exercicios[exIdx],
-                     resposta: ans
-                 });
-
-                 // Mostra feedback da IA
-                 const feedbackDiv = document.createElement('div');
-                 feedbackDiv.id = 'lesson-feedback';
-                 feedbackDiv.style.marginTop = '15px';
-                 feedbackDiv.style.padding = '15px';
-                 feedbackDiv.style.borderRadius = '12px';
-                 feedbackDiv.style.fontWeight = 'bold';
-                 feedbackDiv.style.backgroundColor = evaluation.correto ? '#dcfce7' : '#fef2f2';
-                 feedbackDiv.style.color = evaluation.correto ? '#166534' : '#991b1b';
-
-                 let extraHtml = '';
-                 if (!evaluation.correto) {
-                    extraHtml = `<div style="margin-top: 15px;"><button id="btn-try-again" style="background: transparent; border: 1px solid #991b1b; color: #991b1b; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 700;">Tentar Novamente</button></div>`;
-                 }
-
-                 feedbackDiv.innerHTML = `<div>${evaluation.correto ? '✅ Muito Bem!' : '❌ Ops!'}</div><div style="font-weight:normal; margin-top:5px;">${evaluation.feedback}</div>${extraHtml}`;
-
-                 contentDiv.appendChild(feedbackDiv);
-
-                 if(evaluation.correto) {
-                     btn.textContent = isLastEx ? 'Concluir' : 'Continuar';
-                     btn.disabled = false;
-                     btn.onclick = advanceLessonFlow;
-                 } else {
-                     // Permite avançar mesmo errando
-                     btn.textContent = isLastEx ? 'Concluir Mesmo Assim' : 'Continuar Mesmo Assim';
-                     btn.disabled = false;
-                     btn.onclick = advanceLessonFlow;
-
-                     // Se quiser tentar de novo
-                     const btnTryAgain = document.getElementById('btn-try-again');
-                     if (btnTryAgain) {
-                         btnTryAgain.onclick = () => {
-                             feedbackDiv.remove();
-                             renderLessonStep();
-                         };
-                     }
-                 }
-             } catch(e) {
-                 $('err-lesson').textContent = e.message;
-                 btn.textContent = 'Verificar Novamente';
-                 btn.disabled = false;
-             }
-          };
-
-          // Pula a função onclick de avanço padrão, usando a nossa acima para o step de exercício
-          return;
-        }
-
-        btn.onclick = advanceLessonFlow;
       }
 
-      async function advanceLessonFlow() {
-          const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-          const actualTotalSteps = 2 + exerciciosCount;
-          const btn = $('btn-lesson-action');
-          $('err-lesson').textContent = '';
+      function buildChart(canvasId, visualData) {
+          const ctx = document.getElementById(canvasId).getContext('2d');
+          const dados = visualData.dados || {};
 
-          const isLastStep = state.lessonActive.tipo === 'teoria' ? state.lessonStep >= 1 : state.lessonStep >= actualTotalSteps - 1;
+          let chartType = 'line';
+          if (visualData.tipo === 'tabela' || (dados.labels && dados.valores)) {
+             chartType = 'bar'; // Fallback visual
+          }
 
-          if (isLastStep) {
-              try {
-                btn.textContent = 'Concluindo...'; btn.disabled = true;
-                const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: state.lessonActive.id });
-                state.tarefas = data.tarefas;
-                $('journey-msg').textContent = data.feedback || 'Muito bem! Lição concluída!';
-                buildJourney();
-                hideAllScreens();
-                $('screen-journey').classList.remove('hidden');
-              } catch(e) {
-                $('err-lesson').textContent = e.message;
-              } finally {
-                btn.textContent = 'Continuar'; btn.disabled = false;
+          let labels = dados.x || dados.labels || [];
+          let values = dados.y || (dados.valores && dados.valores.length > 0 ? dados.valores[0] : []);
+
+          if (!labels.length && !values.length) {
+              labels = [0]; values = [0]; // fallback
+          }
+
+          new Chart(ctx, {
+              type: chartType,
+              data: {
+                  labels: labels,
+                  datasets: [{
+                      label: visualData.funcao || 'Dados',
+                      data: values,
+                      borderColor: '#3b82f6',
+                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                      borderWidth: 2,
+                      tension: 0.4
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  plugins: {
+                      legend: { labels: { color: '#f8fafc' } }
+                  },
+                  scales: {
+                      x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                      y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                  }
               }
-          } else {
-              state.lessonStep++;
-              renderLessonStep();
+          });
+      }
+
+      function createLessonBlockHTML(title, emoji) {
+          const card = document.createElement('div');
+          card.className = 'lesson-card';
+
+          const char = document.createElement('div');
+          char.className = 'lesson-character';
+          char.textContent = emoji;
+
+          const bubble = document.createElement('div');
+          bubble.className = 'lesson-bubble';
+
+          const badge = document.createElement('div');
+          badge.className = 'lesson-badge';
+          badge.textContent = title;
+
+          const content = document.createElement('div');
+          content.className = 'lesson-content-inner';
+
+          bubble.appendChild(badge);
+          bubble.appendChild(content);
+          card.appendChild(char);
+          card.appendChild(bubble);
+
+          return { card, content };
+      }
+
+      async function renderLessonFlow() {
+          const task = state.lessonActive;
+          const blocos = task.conteudo.blocos || [];
+          const totalBlocos = blocos.length;
+
+          if (state.lessonStep >= totalBlocos) {
+             // Terminou os blocos, mostrar botão de concluir
+             const btnConcluir = $('btn-lesson-action');
+             btnConcluir.classList.remove('hidden');
+             btnConcluir.onclick = async () => {
+                 btnConcluir.textContent = 'Concluindo...';
+                 btnConcluir.disabled = true;
+                 try {
+                     const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: task.id });
+                     state.tarefas = data.tarefas;
+                     $('journey-msg').textContent = data.feedback || 'Muito bem! Lição concluída!';
+                     buildJourney();
+                     hideAllScreens();
+                     $('screen-journey').classList.remove('hidden');
+                 } catch(e) {
+                     $('err-lesson').textContent = e.message;
+                 } finally {
+                     btnConcluir.textContent = 'Concluir Lição';
+                     btnConcluir.disabled = false;
+                 }
+             };
+             return;
+          }
+
+          // Atualizar barra de progresso
+          const progPct = ((state.lessonStep) / totalBlocos) * 100;
+          $('lesson-progress').style.width = `${progPct}%`;
+
+          const bloco = blocos[state.lessonStep];
+          const feed = $('lesson-feed');
+
+          let requiresInteraction = false;
+
+          if (bloco.tipo === 'explicacao') {
+             const { card, content } = createLessonBlockHTML('Conceito Novo', '🤖');
+             feed.appendChild(card);
+             await renderMarkdown(content, bloco.conteudo);
+          }
+          else if (bloco.tipo === 'visual' && bloco.visual && bloco.visual.tipo !== 'nenhum') {
+             const { card, content } = createLessonBlockHTML('Visualizando', '📊');
+             const vDiv = document.createElement('div');
+             vDiv.className = 'visual-container';
+
+             if (bloco.visual.descricao) {
+                 const desc = document.createElement('p');
+                 desc.style.marginBottom = '10px';
+                 desc.style.color = '#94a3b8';
+                 desc.textContent = bloco.visual.descricao;
+                 vDiv.appendChild(desc);
+             }
+
+             if (bloco.visual.tipo === 'tabela' && bloco.visual.dados && bloco.visual.dados.labels && bloco.visual.dados.valores) {
+                 // Renderizar tabela HTML ao invez de chartjs de barra, pra ficar melhor
+                 let tableHtml = '<table style="width:100%; text-align:left; color:#f8fafc; border-collapse: collapse; margin-top: 10px;">';
+                 tableHtml += '<tr>';
+                 bloco.visual.dados.labels.forEach(l => {
+                     tableHtml += `<th style="border-bottom:1px solid rgba(255,255,255,0.2); padding:8px;">${l}</th>`;
+                 });
+                 tableHtml += '</tr>';
+                 bloco.visual.dados.valores.forEach(row => {
+                     tableHtml += '<tr>';
+                     row.forEach(cell => {
+                         tableHtml += `<td style="border-bottom:1px solid rgba(255,255,255,0.1); padding:8px;">${cell}</td>`;
+                     });
+                     tableHtml += '</tr>';
+                 });
+                 tableHtml += '</table>';
+                 vDiv.innerHTML += tableHtml;
+                 content.appendChild(vDiv);
+                 feed.appendChild(card);
+             } else {
+                 const canvasId = `chart-${state.lessonStep}`;
+                 vDiv.innerHTML += `<canvas id="${canvasId}"></canvas>`;
+                 content.appendChild(vDiv);
+                 feed.appendChild(card);
+
+                 // Aguarda o DOM renderizar o canvas antes de montar o chart
+                 setTimeout(() => {
+                     buildChart(canvasId, bloco.visual);
+                 }, 100);
+             }
+          }
+          else if (bloco.tipo === 'exemplo') {
+             const { card, content } = createLessonBlockHTML('Exemplo Prático', '💡');
+             feed.appendChild(card);
+             await renderMarkdown(content, bloco.conteudo);
+          }
+          else if (bloco.tipo === 'exercicios' || bloco.tipo === 'exercicio') {
+             requiresInteraction = true;
+
+             // Lida tanto com lista de perguntas quanto pergunta unica
+             const perguntas = bloco.perguntas || (bloco.lista ? bloco.lista : [bloco.pergunta]);
+
+             // Para simplificar no feed linear, vamos renderizar todas as perguntas desse bloco num unico card,
+             // mas exigindo resposta em cada uma.
+
+             for (let i = 0; i < perguntas.length; i++) {
+                 const p = perguntas[i];
+                 const { card, content } = createLessonBlockHTML(`Exercício`, '✍️');
+
+                 const qText = document.createElement('div');
+                 await renderMarkdown(qText, p);
+                 content.appendChild(qText);
+
+                 const exArea = document.createElement('div');
+                 exArea.className = 'exercise-area';
+
+                 const textarea = document.createElement('textarea');
+                 textarea.rows = 3;
+                 textarea.placeholder = "Escreva sua resposta aqui...";
+
+                 const btnVerificar = document.createElement('button');
+                 btnVerificar.textContent = "Verificar Resposta";
+
+                 const feedbackDiv = document.createElement('div');
+                 feedbackDiv.className = 'exercise-feedback hidden';
+
+                 btnVerificar.onclick = async () => {
+                     const ans = textarea.value.trim();
+                     if(!ans) return;
+
+                     btnVerificar.disabled = true;
+                     btnVerificar.textContent = "Avaliando...";
+                     textarea.disabled = true;
+
+                     try {
+                         const evaluation = await post(`/api/tarefas/${state.userId}/avaliar-resposta`, {
+                             tema: state.lessonActive.tema,
+                             enunciado: p,
+                             resposta: ans
+                         });
+
+                         feedbackDiv.classList.remove('hidden');
+                         feedbackDiv.style.backgroundColor = evaluation.correto ? '#dcfce7' : '#fef2f2';
+                         feedbackDiv.style.color = evaluation.correto ? '#166534' : '#991b1b';
+                         feedbackDiv.innerHTML = `<div>${evaluation.correto ? '✅' : '❌'} ${evaluation.feedback}</div>`;
+
+                         btnVerificar.style.display = 'none'; // Esconde botão apos responder
+
+                         // Se for o ultimo exercicio do bloco, avanca o bloco
+                         if (i === perguntas.length - 1) {
+                             const btnNext = document.createElement('button');
+                             btnNext.textContent = "Continuar";
+                             btnNext.style.marginTop = "10px";
+                             btnNext.onclick = () => {
+                                 btnNext.style.display = 'none';
+                                 state.lessonStep++;
+                                 renderLessonFlow();
+                             };
+                             content.appendChild(btnNext);
+
+                             // Rola a tela
+                             setTimeout(() => btnNext.scrollIntoView({behavior: 'smooth', block: 'center'}), 100);
+                         }
+
+                     } catch(e) {
+                         alert(e.message);
+                         btnVerificar.disabled = false;
+                         btnVerificar.textContent = "Verificar Resposta";
+                         textarea.disabled = false;
+                     }
+                 };
+
+                 exArea.appendChild(textarea);
+                 exArea.appendChild(btnVerificar);
+                 exArea.appendChild(feedbackDiv);
+                 content.appendChild(exArea);
+
+                 feed.appendChild(card);
+             }
+          }
+
+          // Auto scroll para o novo bloco
+          setTimeout(() => {
+              const cards = feed.querySelectorAll('.lesson-card');
+              if(cards.length > 0) {
+                  cards[cards.length - 1].scrollIntoView({behavior: 'smooth', block: 'start'});
+              }
+          }, 100);
+
+          // Se não requer interação travante (como exercícios), renderiza um botão de continuar genérico para avançar pro prox bloco
+          if (!requiresInteraction) {
+             const btnNext = document.createElement('button');
+             btnNext.className = 'btn';
+             btnNext.style.width = '100%';
+             btnNext.style.marginBottom = '20px';
+             btnNext.textContent = "Continuar Lendo";
+             btnNext.onclick = () => {
+                 btnNext.style.display = 'none'; // Some com ele mesmo
+                 state.lessonStep++;
+                 renderLessonFlow();
+             };
+             feed.appendChild(btnNext);
           }
       }
 
