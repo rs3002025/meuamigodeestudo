@@ -66,15 +66,26 @@ def _fallback_conteudo(materia: str, tema: str, erro_tecnico: str = None) -> dic
         erro_tecnico = "O administrador não configurou a chave da API." if not os.getenv("OPENAI_API_KEY") else "Houve uma falha de conexão ou parsing temporária."
 
     return {
-        "explicacao": (
-            f"Ops, parece que a inteligência artificial está indisponível no momento! "
-            f"Eu não consegui gerar a explicação real para '{tema}' em {materia}.\n\n"
-            f"⚠️ Motivo técnico: {erro_tecnico}"
-        ),
-        "exemplo": f"Exemplo: Quando a IA voltar, você verá um caso de uso real de {tema} aqui.",
-        "exercicios": [
-            f"Exercício de fallback: Escreva um pequeno resumo do que você já sabe sobre {tema}.",
-            "Pressione 'Verificar e Continuar' para avançar.",
+        "blocos": [
+            {
+                "tipo": "explicacao",
+                "conteudo": (
+                    f"Ops, parece que a inteligência artificial está indisponível no momento! "
+                    f"Eu não consegui gerar a explicação real para '{tema}' em {materia}.\n\n"
+                    f"⚠️ Motivo técnico: {erro_tecnico}"
+                )
+            },
+            {
+                "tipo": "exemplo",
+                "conteudo": f"Exemplo: Quando a IA voltar, você verá um caso de uso real de {tema} aqui."
+            },
+            {
+                "tipo": "exercicios",
+                "perguntas": [
+                    f"Exercício de fallback: Escreva um pequeno resumo do que você já sabe sobre {tema}.",
+                    "Pressione 'Verificar e Continuar' para avançar."
+                ]
+            }
         ],
         "origem": "fallback-local",
     }
@@ -124,8 +135,6 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         return None, f"Retorno inesperado da IA: {e}"
 
 
-from services.visual_engine import render_visual
-
 def gerar_mensagem_amigo(tema: str) -> str:
     mensagens = [
         f"isso aqui em {tema} cai direto em prova, presta atenção nisso",
@@ -140,74 +149,68 @@ def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     if cached:
         # Prependa a mensagem amigável no início da explicação para não quebrar o frontend
         mensagem = gerar_mensagem_amigo(tema)
-        explicacao = cached.get("explicacao", "")
-        if not explicacao.startswith(f"**{mensagem}**"):
-            cached["explicacao"] = f"**{mensagem}**\n\n{explicacao}"
+        blocos = cached.get("blocos", [])
+        if blocos and blocos[0].get("tipo") == "explicacao":
+            conteudo_atual = blocos[0].get("conteudo", "")
+            if f"**{mensagem}**" not in conteudo_atual:
+                blocos[0]["conteudo"] = f"**{mensagem}**\n\n{conteudo_atual}"
         return {**cached, "cache": True}
 
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é aquele amigo muito inteligente que sabe explicar qualquer matéria difícil de um jeito extremamente fácil de entender.
+    prompt = f"""Você é um sistema de ensino inteligente, atuando como um amigo extremamente didático que explica de forma simples e direta.
+Gere uma aula estruturada, dividida em blocos sequenciais.
 
 Matéria: {materia}
 Tema: {tema}
-Foco Específico da Aula: {foco_delimitado}
+Foco Específico: {foco_delimitado}
 
-REGRA PRINCIPAL:
-- Ensine SOMENTE o tema informado (restrito ao "Foco Específico da Aula")
-- NÃO explique conceitos mais básicos não solicitados
-- NÃO amplie o assunto
+REGRAS OBRIGATÓRIAS:
+- Ensine SOMENTE esse recorte
+- Não fuja do tema ou ensine conceitos não solicitados
+- Linguagem simples, conversacional e direta (use a segunda pessoa "você")
+- Nível de prova: a explicação deve ser suficiente para o aluno resolver questões sobre o tema.
+- Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
 
-Estrutura obrigatória:
-1) Explicação direta do tema
-2) Como funciona (regra/lógica)
-3) Exemplo claro (passo a passo)
-4) 2 ou 3 exercícios (varie os formatos: ex. aberta, múltipla escolha, verdadeiro/falso. Nunca dê a resposta no enunciado)
-
-Regras de Tom e Didática:
-- Linguagem simples, conversacional e direta, usando a segunda pessoa ("você").
-- Use analogias do dia a dia sempre que ajudarem a clarear o conceito rapidamente, mas NÃO force a barra nem alongue a explicação de forma desnecessária. Seja conciso e direto ao ponto.
-- Evite termos excessivamente acadêmicos ou difíceis. Simplifique o máximo possível sem perder a precisão.
-- NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas rígidas.
-- Sem fugir do tema e sem introduções amplas ou enrolações genéricas.
-
-Regras Obrigatórias e Didática de Prova:
-- Use formatação Markdown (negrito, listas, quebras de parágrafo). NUNCA deixe frases curtas espremidas sozinhas ou penduradas.
-- Sua explicação deve ser suficiente para que o aluno consiga resolver questões de prova sobre o tema sem precisar de outra fonte.
-- Sempre inclua os pontos que mais caem em prova quando aplicável.
-- Se for matemática: inclua pelo menos uma forma de resolução típica de prova.
-- IMPORTANTE PARA MATEMÁTICA E TEXTO FLUIDO: Use APENAS Cifrões simples (ex: `$x^2$`) para equações DENTRO de frases, para não quebrar o texto. Use Cifrões duplos (ex: `$$x^2 + 2x$$`) APENAS para grandes fórmulas isoladas e centralizadas. NUNCA misture `$$` no meio de uma frase. É ABSOLUTAMENTE PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
-SINALIZAÇÃO VISUAL INTELIGENTE (OBRIGATÓRIO):
-Você deve decidir se o conteúdo precisa de apoio visual.
-Tipos possíveis:
-- "grafico" -> funções, crescimento, comportamento
-- "tabela" -> comparação, organização
-- "diagrama" -> fluxo, processo, relações
-- "nenhum" -> quando não agrega
-
-IMPORTANTE:
-- NÃO gere HTML nem imagem, o backend renderizará com base nesse sinal.
-- Apenas descreva e, se possível, forneça os DADOS ESTRUTURADOS.
-
-ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne apenas o conteúdo puro.
-
-Retorne ESTRITAMENTE em JSON:
+Formato OBRIGATÓRIO do JSON de saída:
 {{
-  "explicacao": "A explicação direta e didática, como se falasse com um amigo, quebrada em parágrafos.",
-  "exemplo": "Um exemplo prático e resolvido passo a passo ilustrando a teoria.",
-  "exercicios": ["Enunciado do ex 1...", "Enunciado do ex 2..."],
-  "visual": {{
-    "tipo": "grafico",
-    "descricao": "parábola mostrando concavidade para cima e para baixo",
-    "dados": {{
-      "x": [-2, -1, 0, 1, 2],
-      "y": [4, 1, 0, 1, 4],
-      "labels": ["Item 1", "Item 2"],
-      "valores": [["A", 10], ["B", 20]]
+  "blocos": [
+    {{
+      "tipo": "explicacao",
+      "conteudo": "A explicação direta e didática, como se falasse com um amigo, quebrada em parágrafos."
+    }},
+    {{
+      "tipo": "visual",
+      "visual": {{
+        "tipo": "grafico | tabela | diagrama | nenhum",
+        "descricao": "O que este visual representa e por que ajuda",
+        "funcao": "y = x^2 - 4x + 3",
+        "dados": {{
+          "x": [-2, -1, 0, 1, 2],
+          "y": [4, 1, 0, 1, 4],
+          "labels": ["Conceito", "Definição"],
+          "valores": [["Sujeito", "Quem pratica"]]
+        }}
+      }}
+    }},
+    {{
+      "tipo": "exemplo",
+      "conteudo": "Um exemplo prático e resolvido passo a passo ilustrando a teoria."
+    }},
+    {{
+      "tipo": "exercicios",
+      "lista": ["Enunciado da questão 1", "Enunciado da questão 2"]
     }}
-  }}
+  ]
 }}
+
+REGRAS DE VISUAIS:
+- Se precisar mostrar uma função matemática (parábola, reta, etc), passe a equação matemática real no campo "funcao" (ex: "y = x^2"). O nosso motor criará os dados e gráficos reais interativos.
+- Para outros gráficos/tabelas preencha o campo "dados".
+- NÃO gere HTML, não gere Markdown de imagens, nem links Pollinations. Apenas JSON estruturado puro.
+
+ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne estritamente o objeto JSON.
 """
 
     raw, erro_tecnico = _chamar_ia(prompt)
@@ -218,20 +221,13 @@ Retorne ESTRITAMENTE em JSON:
         raw = re.sub(r"```$", "", raw).strip()
 
     is_fallback = False
+    from services.visual_engine import processar_aula
+
     if raw:
         try:
             parsed = json.loads(raw)
-            content = {
-                "explicacao": parsed.get("explicacao") or _fallback_conteudo(materia, tema)["explicacao"],
-                "exemplo": parsed.get("exemplo") or _fallback_conteudo(materia, tema)["exemplo"],
-                "exercicios": parsed.get("exercicios") or _fallback_conteudo(materia, tema)["exercicios"],
-                "origem": "ia",
-            }
-            visual = parsed.get("visual", {})
-            if content.get("explicacao") and visual:
-                bloco_visual = render_visual(visual)
-                if bloco_visual:
-                    content["explicacao"] += bloco_visual
+            content = processar_aula(parsed)
+            content["origem"] = "ia"
         except json.JSONDecodeError as e:
             print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
             content = _fallback_conteudo(materia, tema, f"JSON Inválido: {e}")
@@ -246,8 +242,14 @@ Retorne ESTRITAMENTE em JSON:
         set_cached_content(materia, tema, foco_delimitado, content)
 
     mensagem = gerar_mensagem_amigo(tema)
-    explicacao = content.get("explicacao", "")
-    content["explicacao"] = f"**{mensagem}**\n\n{explicacao}"
+
+    # Injeta a mensagem no primeiro bloco de explicacao ou adiciona no topo
+    blocos = content.get("blocos", [])
+    if blocos and blocos[0].get("tipo") == "explicacao":
+        explicacao_atual = blocos[0].get("conteudo", "")
+        blocos[0]["conteudo"] = f"**{mensagem}**\n\n{explicacao_atual}"
+    else:
+        blocos.insert(0, {"tipo": "explicacao", "conteudo": f"**{mensagem}**"})
 
     return {**content, "cache": False}
 
