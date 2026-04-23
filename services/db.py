@@ -122,16 +122,18 @@ def atualizar_dias_sem_estudar(user_id: str, ref_day: date | None = None) -> dic
             conn.commit()
             return cur.fetchone()
 
-def get_cached_content(user_id: str, materia: str, tema: str) -> dict[str, Any] | None:
-    key = f"{user_id}:{materia.strip().lower()}:{tema.strip().lower()}"
+def get_cached_content(materia: str, tema: str, foco_delimitado: str = "") -> dict[str, Any] | None:
+    foco = foco_delimitado.strip().lower() if foco_delimitado else ""
+    key = f"{materia.strip().lower()}:{tema.strip().lower()}:{foco}"
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT payload FROM content_cache WHERE cache_key = %s", (key,))
             row = cur.fetchone()
             return row["payload"] if row else None
 
-def set_cached_content(user_id: str, materia: str, tema: str, content: dict[str, Any]) -> None:
-    key = f"{user_id}:{materia.strip().lower()}:{tema.strip().lower()}"
+def set_cached_content(materia: str, tema: str, foco_delimitado: str, content: dict[str, Any]) -> None:
+    foco = foco_delimitado.strip().lower() if foco_delimitado else ""
+    key = f"{materia.strip().lower()}:{tema.strip().lower()}:{foco}"
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""

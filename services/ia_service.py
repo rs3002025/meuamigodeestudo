@@ -8,7 +8,6 @@ import requests
 
 from services.db import (
     get_cached_content,
-    increment_ia_daily_count,
     set_cached_content,
 )
 
@@ -116,10 +115,37 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         return None, f"Retorno inesperado da IA: {e}"
 
 
-def gerar_conteudo(user_id: str, materia: str, tema: str, foco_delimitado: str = "") -> dict:
-    cached = get_cached_content(user_id, materia, tema)
+def precisa_grafico(tema: str) -> bool:
+    palavras = [
+        "função", "grafico", "gráfico", "reta", "parabola", "parábola",
+        "equação", "curva"
+    ]
+    return any(p in tema.lower() for p in palavras)
+
+def gerar_grafico_padrao() -> str:
+    return """
+<br>
+<img src="https://quickchart.io/chart?c={type:'line',data:{labels:[1,2,3,4],datasets:[{data:[1,4,9,16]}]}}" />
+<br>
+"""
+
+def gerar_mensagem_amigo() -> str:
+    mensagens = [
+        "isso aqui cai direto em prova, presta atenção nisso",
+        "se tu entender isso aqui, já resolve muita questão",
+        "esse ponto aqui é onde a maioria erra",
+        "isso aqui é chave pra prova, foca nisso"
+    ]
+    return random.choice(mensagens)
+
+def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
+    cached = get_cached_content(materia, tema, foco_delimitado)
     if cached:
-        return {**cached, "cache": True}
+        return {
+            "mensagem": gerar_mensagem_amigo(),
+            "conteudo": cached,
+            "cache": True
+        }
 
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
@@ -148,13 +174,13 @@ Regras de Tom e Didática:
 - NÍVEL ESCOLAR: É absolutamente proibido ensinar deduções complexas ou formas acadêmicas rígidas.
 - Sem fugir do tema e sem introduções amplas ou enrolações genéricas.
 
-Regras e Recursos Visuais Obrigatórios:
+Regras Obrigatórias e Didática de Prova:
 - Use formatação Markdown (negrito, listas, quebras de parágrafo). NUNCA deixe frases curtas espremidas sozinhas ou penduradas.
-- OBRIGATORIEDADE VISUAL: Você DEVE sempre usar algum recurso visual (imagem, gráfico, diagrama ou tabela) SEMPRE que o tema ensinado for mais claro com ele, independente da matéria.
+- Sua explicação deve ser suficiente para que o aluno consiga resolver questões de prova sobre o tema sem precisar de outra fonte.
+- Sempre inclua os pontos que mais caem em prova quando aplicável.
+- Se for matemática: inclua pelo menos uma forma de resolução típica de prova.
 - IMPORTANTE PARA MATEMÁTICA E TEXTO FLUIDO: Use APENAS Cifrões simples (ex: `$x^2$`) para equações DENTRO de frases, para não quebrar o texto. Use Cifrões duplos (ex: `$$x^2 + 2x$$`) APENAS para grandes fórmulas isoladas e centralizadas. NUNCA misture `$$` no meio de uma frase. É ABSOLUTAMENTE PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
-- TABELAS E GRÁFICOS (QuickChart): Se envolver gráficos matemáticos, adicione um gráfico com EXATAMENTE este formato HTML: `<img src="https://quickchart.io/chart?c={{type:'line',data:{{labels:[1,2,3],datasets:[{{data:[4,5,6]}}]}}}}" />`. A URL NÃO PODE TER ESPAÇOS, SINAIS DE MENOS (-) EM TEXTO, OU VARIÁVEIS. Use SOMENTE NÚMEROS nos arrays de labels e data para não causar `Unexpected token '-'` ou quebrar o link da imagem.
-- IMAGENS ILUSTRATIVAS: Use a URL `https://image.pollinations.ai/prompt/SEU_PROMPT_EM_INGLES_AQUI` dentro de uma tag HTML `<img>`. REGRAS RÍGIDAS PARA IMAGENS: SÓ USE SE O TEMA FOR UMA APLICAÇÃO NO MUNDO REAL. PARA TEMAS MATEMÁTICOS ABSTRATOS, NÃO GERE IMAGENS POLLINATIONS, use Tabelas. Adicione `no-text-no-diagram-clean-accurate-educational-illustration` ao prompt.
-- MAPAS MENTAIS E DIAGRAMAS: Sempre que for útil explicar um fluxo, use um bloco de código `mermaid`. REGRAS RÍGIDAS: É ESTRITAMENTE PROIBIDO USAR CIFRÃO ($) E FÓRMULAS MATEMÁTICAS dentro dos nós do Mermaid. O Mermaid vai quebrar se você tentar renderizar equações. Use APENAS palavras comuns (ex: `A["Equacao Quadratica"] --> B["Encontrar as raizes"]`).
+- ABSOLUTAMENTE PROIBIDO DECISÕES VISUAIS: VOCÊ ESTÁ ESTRITAMENTE PROIBIDO DE GERAR GRÁFICOS (QuickChart), IMAGENS (Pollinations) OU DIAGRAMAS (Mermaid). O backend cuidará disso. Gere apenas texto e tabelas Markdown.
 - ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne apenas o conteúdo puro.
 
 Retorne ESTRITAMENTE em JSON:
@@ -182,6 +208,8 @@ Retorne ESTRITAMENTE em JSON:
                 "exercicios": parsed.get("exercicios") or _fallback_conteudo(materia, tema)["exercicios"],
                 "origem": "ia",
             }
+            if precisa_grafico(tema) and content.get("explicacao"):
+                content["explicacao"] += gerar_grafico_padrao()
         except json.JSONDecodeError as e:
             print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
             content = _fallback_conteudo(materia, tema, f"JSON Inválido: {e}")
@@ -190,13 +218,15 @@ Retorne ESTRITAMENTE em JSON:
         content = _fallback_conteudo(materia, tema, erro_tecnico)
         is_fallback = True
 
-    increment_ia_daily_count(user_id)
-
     # IMPORTANTE: Nunca cacheie o fallback, senão o assunto ficará permanentemente inacessível mesmo após o erro resolver.
     if not is_fallback:
-        set_cached_content(user_id, materia, tema, content)
+        set_cached_content(materia, tema, foco_delimitado, content)
 
-    return {**content, "cache": False}
+    return {
+        "mensagem": gerar_mensagem_amigo(),
+        "conteudo": content,
+        "cache": False
+    }
 
 
 def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
@@ -288,9 +318,9 @@ Tema: {tema}
 
 Regras ABSOLUTAS:
 1. Você DEVE quebrar o tema em NO MÁXIMO 5 ou 6 itens no total.
-2. Seja EXTREMAMENTE conciso. Divida apenas o conteúdo principal.
-3. DIRETO AO PONTO: Assuma que o aluno já tem a base. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial (Ex: se o tema for Equação Quadrática, não ensine plano cartesiano). Comece direto no assunto da Equação Quadrática.
-4. NÍVEL DE ENSINO MÉDIO: NÃO gere tópicos de aprofundamento acadêmico inútil.
+2. Seja EXTREMAMENTE conciso. Divida apenas o conteúdo principal e a progressão deve preparar para prova.
+3. DIRETO AO PONTO: Assuma que o aluno já tem a base. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial genérica (Ex: se o tema for Equação Quadrática, não ensine plano cartesiano). Comece direto no assunto da Equação Quadrática.
+4. NÍVEL DE ENSINO MÉDIO: NÃO gere tópicos de aprofundamento acadêmico além do necessário. A progressão deve focar estritamente em resolver a prova.
 5. A progressão deve ser ágil e lógica.
 6. IMPORTANTE: No campo "nome", forneça APENAS o nome específico do subtema curto e claro.
 7. O campo "foco_delimitado" serve para restringir a IA que vai gerar o conteúdo do subtema.

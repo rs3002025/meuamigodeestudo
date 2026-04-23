@@ -23,6 +23,29 @@ def _objetivo_para_lista(objetivo: str | list[str]) -> list[str]:
         return [objetivo.strip()]
     return []
 
+def montar_trilha(materia: str, subtemas: list[dict]) -> list[dict]:
+    trilha = []
+    for s in subtemas:
+        nome = s.get("nome", "Tema")
+        foco = s.get("foco_delimitado", "")
+        trilha.append({
+            "materia": materia,
+            "tema": nome,
+            "foco_delimitado": foco,
+            "tipo": "teoria"
+        })
+        trilha.append({
+            "materia": materia,
+            "tema": nome,
+            "tipo": "questoes"
+        })
+        trilha.append({
+            "materia": materia,
+            "tema": nome,
+            "tipo": "revisao"
+        })
+    return trilha
+
 def gerar_plano_inicial(payload: dict) -> dict:
     user_id = payload["userId"]
     tempo_disponivel_min = int(payload.get("tempoDisponivelMin", 60))
@@ -38,11 +61,7 @@ def gerar_plano_inicial(payload: dict) -> dict:
     foco = materias[0] if materias else str(payload.get("objetivo", ""))
     if foco:
         subtemas = gerar_estrutura_tema(foco)
-        for subtema in subtemas:
-            nome_tema = subtema.get("nome", "Tema")
-            foco_delimitado = subtema.get("foco_delimitado", "")
-            trilha_subtemas.append({"materia": foco, "tema": nome_tema, "foco_delimitado": foco_delimitado, "tipo": "teoria"})
-            trilha_subtemas.append({"materia": foco, "tema": nome_tema, "foco_delimitado": foco_delimitado, "tipo": "questoes"})
+        trilha_subtemas = montar_trilha(foco, subtemas)
 
     plano = {
         "userId": user_id,
