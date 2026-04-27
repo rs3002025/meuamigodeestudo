@@ -642,7 +642,11 @@
 
         hideAllScreens();
         $('screen-lesson').classList.remove('hidden');
-        renderLessonStep();
+        $('lesson-feed').innerHTML = ''; // Limpa aula anterior
+        $('btn-lesson-action').classList.add('hidden'); // Esconde concluir
+        $('lesson-progress').style.width = '0%';
+
+        renderLessonFlow();
       }
 
       $('btn-close-lesson').onclick = () => {
