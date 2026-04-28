@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amigo de Estudo</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='50'%3E%F0%9F%A4%96%3C/text%3E%3C/svg%3E" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module">
@@ -11,7 +12,6 @@
       mermaid.initialize({ startOnLoad: false, theme: 'default' });
       window.mermaid = mermaid;
     </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
       window.MathJax = {
@@ -28,18 +28,18 @@
       @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap');
 
       :root {
-        --bg-color: #0b0914;
-        --text-main: #e2dcf2;
-        --primary: #9d4edd;
-        --primary-shadow: #7b2cbf;
-        --secondary: #00f5d4;
-        --secondary-shadow: #00bbf9;
-        --gray: #241938;
-        --gray-shadow: #140d24;
-        --dark-gray: #7a6e96;
+        --bg-color: #070411;
+        --text-main: #efe9ff;
+        --primary: #8b5cf6;
+        --primary-shadow: #6d28d9;
+        --secondary: #22d3ee;
+        --secondary-shadow: #0284c7;
+        --gray: #2b1f44;
+        --gray-shadow: #180f2b;
+        --dark-gray: #a99cc7;
         --error: #ff0054;
-        --card-bg: rgba(36, 25, 56, 0.6);
-        --card-border: rgba(157, 78, 221, 0.3);
+        --card-bg: rgba(26, 15, 46, 0.72);
+        --card-border: rgba(139, 92, 246, 0.4);
       }
 
       * { box-sizing: border-box; }
@@ -52,14 +52,17 @@
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, #0b0914 60%);
+        background-image:
+          radial-gradient(circle at 20% 10%, rgba(34,211,238,0.18), transparent 40%),
+          radial-gradient(circle at 80% 0%, rgba(139,92,246,0.25), transparent 35%),
+          linear-gradient(180deg, #12052a 0%, #090514 80%);
         background-attachment: fixed;
       }
 
       .app-container {
         width: 100%;
         max-width: 480px;
-        background: rgba(11, 9, 20, 0.4);
+        background: rgba(8, 5, 18, 0.52);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         min-height: 100vh;
@@ -67,9 +70,9 @@
         flex-direction: column;
         padding: 20px;
         position: relative;
-        border-left: 1px solid var(--card-border);
-        border-right: 1px solid var(--card-border);
-        box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        border-left: 1px solid rgba(139,92,246,0.24);
+        border-right: 1px solid rgba(139,92,246,0.24);
+        box-shadow: 0 0 60px rgba(5, 4, 10, 0.75);
       }
 
       h1, h2, h3 { margin-top: 0; }
@@ -124,16 +127,17 @@
       }
 
       .btn-primary {
-        background-color: var(--primary);
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         color: white;
-        border-bottom: 4px solid var(--primary-shadow);
+        border-bottom: 4px solid #5b21b6;
+        box-shadow: 0 10px 26px rgba(124,58,237,0.35);
       }
       .btn-primary:active { border-bottom-width: 0px; margin-top: 4px; }
 
       .btn-secondary {
-        background-color: var(--secondary);
+        background: linear-gradient(135deg, #22d3ee, #06b6d4);
         color: white;
-        border-bottom: 4px solid var(--secondary-shadow);
+        border-bottom: 4px solid #0e7490;
       }
       .btn-secondary:active { border-bottom-width: 0px; margin-top: 4px; }
 
@@ -174,8 +178,8 @@
       }
 
       .task-node {
-        width: 80px;
-        height: 80px;
+        width: 88px;
+        height: 88px;
         border-radius: 50%;
         display: flex;
         justify-content: center;
@@ -199,8 +203,9 @@
       }
 
       .task-node.active {
-        background: var(--secondary);
-        border-bottom: 6px solid var(--secondary-shadow);
+        background: linear-gradient(140deg, #22d3ee, #14b8a6);
+        border-bottom: 6px solid #0f766e;
+        box-shadow: 0 12px 26px rgba(34,211,238,0.35);
         animation: bounce 2s infinite;
       }
       @keyframes bounce {
@@ -221,7 +226,7 @@
         font-weight: 800;
         text-align: center;
         width: 250px;
-        color: #64748b;
+        color: #cbd5e1;
         z-index: 2;
       }
 
@@ -264,7 +269,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        min-height: 0;
       }
 
       .lesson-character {
@@ -274,8 +279,8 @@
       }
 
       .lesson-bubble {
-        background: #ffffff;
-        border: 2px solid var(--gray);
+        background: linear-gradient(180deg, #ffffff 0%, #f7f5ff 100%);
+        border: 2px solid rgba(36, 25, 56, 0.2);
         border-radius: 16px;
         padding: 24px;
         font-size: 18px;
@@ -283,8 +288,8 @@
         font-weight: 700;
         position: relative;
         margin-bottom: 30px;
-        box-shadow: 0 4px 0 var(--gray);
-        color: var(--text-main);
+        box-shadow: 0 12px 34px rgba(14, 8, 29, 0.3);
+        color: #1f1632;
       }
 
       .lesson-bubble::before {
@@ -310,20 +315,49 @@
 
       .lesson-badge {
         display: inline-block;
-        background: var(--secondary);
-        color: white;
-        padding: 4px 10px;
+        background: linear-gradient(135deg, #22d3ee, #10b981);
+        color: #ffffff;
+        padding: 6px 12px;
         border-radius: 8px;
-        font-size: 12px;
+        font-size: 11px;
         text-transform: uppercase;
         font-weight: 900;
         margin-bottom: 12px;
+        letter-spacing: 0.6px;
+      }
+      #lesson-feed {
+        overflow-y: auto;
+        flex: 1;
+        padding-right: 4px;
+      }
+      .lesson-content-inner {
+        color: #251a3d;
+      }
+      .lesson-content-inner textarea {
+        background: #f8f9ff;
+        color: #1e1b2e;
+        border: 1px solid #d1d5ff;
+      }
+      .lesson-content-inner button {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #7c3aed, #9333ea);
+        color: #fff;
+        cursor: pointer;
+      }
+      .exercise-area {
+        margin-top: 10px;
+      }
+      .exercise-area button {
+        margin-top: 8px;
       }
 
       .bottom-bar {
         margin-top: auto;
         padding-top: 20px;
-        border-top: 2px solid var(--gray);
+        border-top: 2px solid rgba(139,92,246,0.35);
       }
 
       .error-msg {
@@ -451,16 +485,7 @@
         </div>
 
         <div class="lesson-card">
-          <div class="lesson-character">🤖</div>
-          <div class="lesson-bubble">
-            <div id="lesson-badge" class="lesson-badge">Explicação</div>
-            <div id="lesson-content">
-              <!-- Content injected here -->
-            </div>
-          </div>
-          <div id="lesson-interactive-area" class="hidden">
-            <textarea id="lesson-answer" rows="3" placeholder="Sua resposta..."></textarea>
-          </div>
+          <div id="lesson-feed"></div>
         </div>
 
         <p id="err-lesson" class="error-msg"></p>
@@ -657,49 +682,14 @@
       };
 
       $('btn-lesson-action').onclick = async () => {
-        const btn = $('btn-lesson-action');
-        $('err-lesson').textContent = '';
-
-        // Validate answer if on an exercise step
-        if (state.lessonStep >= 2) {
-            const ans = $('lesson-answer').value.trim();
-            if(!ans) {
-                $('err-lesson').textContent = 'Você precisa escrever uma resposta!';
-                return;
-            }
-        }
-
-        const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-        const actualTotalSteps = 2 + exerciciosCount;
-
-        // Se o tipo é teoria, o fim da lição é no passo 1 (Exemplo)
-        // Se o tipo é questoes, o fim da lição é no último exercício
-        const isLastStep = state.lessonActive.tipo === 'teoria' ? state.lessonStep >= 1 : state.lessonStep >= actualTotalSteps - 1;
-
-        if (isLastStep) {
-          try {
-            btn.textContent = 'Concluindo...'; btn.disabled = true;
-            const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: state.lessonActive.id });
-            state.tarefas = data.tarefas;
-            $('journey-msg').textContent = data.feedback || 'Muito bem! Lição concluída!';
-            buildJourney();
-            hideAllScreens();
-            $('screen-journey').classList.remove('hidden');
-          } catch(e) {
-            $('err-lesson').textContent = e.message;
-          } finally {
-            btn.textContent = 'Continuar'; btn.disabled = false;
-          }
-        } else {
-          // Advance lesson
-          state.lessonStep++;
-          renderLessonStep();
-        }
+        // Fluxo linear usa botões dentro do feed de aula.
+        return;
       };
 
 
       async function renderMarkdown(targetDiv, mdText) {
-          targetDiv.innerHTML = `<div class="markdown-body">${marked.parse(mdText)}</div>`;
+          const safeText = (mdText || '').toString().trim() || 'Conteúdo indisponível para este bloco.';
+          targetDiv.innerHTML = `<div class="markdown-body">${marked.parse(safeText)}</div>`;
           if (window.MathJax) {
             await MathJax.typesetPromise([targetDiv]);
           }
@@ -719,40 +709,78 @@
       function buildChart(canvasId, visualData) {
           const ctx = document.getElementById(canvasId).getContext('2d');
           const dados = visualData.dados || {};
+          let xVals = Array.isArray(dados.x) ? dados.x.map(Number).filter(Number.isFinite) : [];
+          let yVals = Array.isArray(dados.y) ? dados.y.map(Number).filter(Number.isFinite) : [];
 
-          let chartType = 'line';
-          if (visualData.tipo === 'tabela' || (dados.labels && dados.valores)) {
-             chartType = 'bar'; // Fallback visual
+          if (!xVals.length || !yVals.length || xVals.length !== yVals.length) {
+              xVals = [-2, -1, 0, 1, 2];
+              yVals = [-3, -1, 1, 3, 5];
           }
 
-          let labels = dados.x || dados.labels || [];
-          let values = dados.y || (dados.valores && dados.valores.length > 0 ? dados.valores[0] : []);
-
-          if (!labels.length && !values.length) {
-              labels = [0]; values = [0]; // fallback
-          }
+          const pontos = xVals.map((x, i) => ({ x, y: yVals[i] }));
+          const intercepto = pontos.find(p => p.x === 0) || null;
+          const minX = Math.min(...xVals) - 1;
+          const maxX = Math.max(...xVals) + 1;
 
           new Chart(ctx, {
-              type: chartType,
+              type: 'scatter',
               data: {
-                  labels: labels,
-                  datasets: [{
-                      label: visualData.funcao || 'Dados',
-                      data: values,
-                      borderColor: '#3b82f6',
-                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                      borderWidth: 2,
-                      tension: 0.4
-                  }]
+                  datasets: [
+                    {
+                      type: 'line',
+                      label: visualData.funcao || 'Reta da função',
+                      data: pontos,
+                      parsing: false,
+                      borderColor: '#2563eb',
+                      backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                      borderWidth: 3,
+                      pointRadius: 4,
+                      pointHoverRadius: 6,
+                      tension: 0
+                    },
+                    intercepto ? {
+                      type: 'scatter',
+                      label: 'Intercepto em y',
+                      data: [intercepto],
+                      parsing: false,
+                      borderColor: '#f97316',
+                      backgroundColor: '#f97316',
+                      pointRadius: 7
+                    } : null,
+                    {
+                      type: 'line',
+                      label: 'eixo x',
+                      data: [{x: minX, y: 0}, {x: maxX, y: 0}],
+                      parsing: false,
+                      borderColor: 'rgba(100, 116, 139, 0.5)',
+                      borderWidth: 1.5,
+                      pointRadius: 0
+                    }
+                  ].filter(Boolean)
               },
               options: {
                   responsive: true,
+                  maintainAspectRatio: true,
                   plugins: {
-                      legend: { labels: { color: '#f8fafc' } }
+                      legend: { labels: { color: '#334155', font: { weight: '700' } } },
+                      tooltip: {
+                        callbacks: {
+                          label: (ctx) => `x=${ctx.raw.x}, y=${ctx.raw.y}`
+                        }
+                      }
                   },
                   scales: {
-                      x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                      y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                      x: {
+                        type: 'linear',
+                        title: { display: true, text: 'Eixo x', color: '#334155', font: { weight: '700' } },
+                        ticks: { color: '#64748b', maxTicksLimit: 8 },
+                        grid: { color: 'rgba(100,116,139,0.2)' }
+                      },
+                      y: {
+                        title: { display: true, text: 'Eixo y', color: '#334155', font: { weight: '700' } },
+                        ticks: { color: '#64748b', maxTicksLimit: 7 },
+                        grid: { color: 'rgba(100,116,139,0.2)' }
+                      }
                   }
               }
           });
@@ -833,25 +861,36 @@
              vDiv.className = 'visual-container';
 
              if (bloco.visual.descricao) {
-                 const desc = document.createElement('p');
+                 const desc = document.createElement('div');
                  desc.style.marginBottom = '10px';
-                 desc.style.color = '#94a3b8';
-                 desc.textContent = bloco.visual.descricao;
+                 desc.style.color = '#64748b';
+                 await renderMarkdown(desc, bloco.visual.descricao);
                  vDiv.appendChild(desc);
              }
 
-             if (bloco.visual.tipo === 'tabela' && bloco.visual.dados && bloco.visual.dados.labels && bloco.visual.dados.valores) {
+             if (bloco.visual.tipo === 'diagrama') {
+                 const info = document.createElement('div');
+                 info.style.padding = '12px';
+                 info.style.borderRadius = '10px';
+                 info.style.background = 'rgba(125, 76, 219, 0.08)';
+                 info.style.color = '#334155';
+                 info.textContent = 'Visual conceitual: foque na interpretação da inclinação e do intercepto.';
+                 content.appendChild(vDiv);
+                 content.appendChild(info);
+                 feed.appendChild(card);
+             }
+             else if (bloco.visual.tipo === 'tabela' && bloco.visual.dados && bloco.visual.dados.labels && bloco.visual.dados.valores) {
                  // Renderizar tabela HTML ao invez de chartjs de barra, pra ficar melhor
-                 let tableHtml = '<table style="width:100%; text-align:left; color:#f8fafc; border-collapse: collapse; margin-top: 10px;">';
+                 let tableHtml = '<table style="width:100%; text-align:left; color:#334155; border-collapse: separate; border-spacing: 0; margin-top: 10px; border:1px solid #dbe4ff; border-radius: 10px; overflow:hidden;">';
                  tableHtml += '<tr>';
                  bloco.visual.dados.labels.forEach(l => {
-                     tableHtml += `<th style="border-bottom:1px solid rgba(255,255,255,0.2); padding:8px;">${l}</th>`;
+                     tableHtml += `<th style="background:#eef2ff; border-bottom:1px solid #dbe4ff; padding:10px; font-weight:800; color:#1e293b;">${l}</th>`;
                  });
                  tableHtml += '</tr>';
                  bloco.visual.dados.valores.forEach(row => {
                      tableHtml += '<tr>';
                      row.forEach(cell => {
-                         tableHtml += `<td style="border-bottom:1px solid rgba(255,255,255,0.1); padding:8px;">${cell}</td>`;
+                         tableHtml += `<td style="border-bottom:1px solid #e2e8f0; padding:10px; color:#334155;">${cell}</td>`;
                      });
                      tableHtml += '</tr>';
                  });
@@ -861,7 +900,7 @@
                  feed.appendChild(card);
              } else {
                  const canvasId = `chart-${state.lessonStep}`;
-                 vDiv.innerHTML += `<canvas id="${canvasId}"></canvas>`;
+                 vDiv.innerHTML += `<canvas id="${canvasId}" style="max-height:260px;"></canvas>`;
                  content.appendChild(vDiv);
                  feed.appendChild(card);
 
@@ -902,6 +941,11 @@
 
                  const btnVerificar = document.createElement('button');
                  btnVerificar.textContent = "Verificar Resposta";
+
+                 const btnPular = document.createElement('button');
+                 btnPular.textContent = "Pular questão";
+                 btnPular.style.marginLeft = '8px';
+                 btnPular.style.background = 'linear-gradient(135deg, #64748b, #475569)';
 
                  const feedbackDiv = document.createElement('div');
                  feedbackDiv.className = 'exercise-feedback hidden';
@@ -952,8 +996,33 @@
                      }
                  };
 
+                 btnPular.onclick = () => {
+                     textarea.value = '';
+                     textarea.disabled = true;
+                     btnVerificar.style.display = 'none';
+                     btnPular.style.display = 'none';
+
+                     feedbackDiv.classList.remove('hidden');
+                     feedbackDiv.style.backgroundColor = '#fff7ed';
+                     feedbackDiv.style.color = '#9a3412';
+                     feedbackDiv.innerHTML = '<div>⏭️ Questão pulada. Você pode revisar depois.</div>';
+
+                     if (i === perguntas.length - 1) {
+                         const btnNext = document.createElement('button');
+                         btnNext.textContent = "Continuar";
+                         btnNext.style.marginTop = "10px";
+                         btnNext.onclick = () => {
+                             btnNext.style.display = 'none';
+                             state.lessonStep++;
+                             renderLessonFlow();
+                         };
+                         content.appendChild(btnNext);
+                     }
+                 };
+
                  exArea.appendChild(textarea);
                  exArea.appendChild(btnVerificar);
+                 exArea.appendChild(btnPular);
                  exArea.appendChild(feedbackDiv);
                  content.appendChild(exArea);
 

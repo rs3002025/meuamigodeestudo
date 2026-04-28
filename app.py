@@ -1,4 +1,6 @@
 from flask import Flask, jsonify
+import logging
+import os
 
 from routes.avaliacao_routes import avaliacao_bp
 from routes.onboarding_routes import onboarding_bp
@@ -7,6 +9,10 @@ from routes.tarefa_routes import tarefa_bp
 
 
 def create_app() -> Flask:
+    logging.basicConfig(
+        level=os.getenv("LOG_LEVEL", "INFO"),
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    )
     app = Flask(__name__, static_folder="public", static_url_path="")
 
     @app.get("/health")
@@ -28,4 +34,5 @@ def create_app() -> Flask:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000, debug=True)
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() in {"1", "true", "yes"}
+    app.run(host="0.0.0.0", port=3000, debug=debug_mode)
