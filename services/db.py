@@ -2,11 +2,13 @@ import json
 import os
 from datetime import date, timedelta
 from typing import Any
+import logging
 
 import psycopg
 from psycopg.rows import dict_row
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+logger = logging.getLogger(__name__)
 
 def get_db_connection():
     if not DATABASE_URL:
@@ -26,7 +28,8 @@ def init_db():
                     ultimo_dia_estudo DATE,
                     ultima_taxa_acerto FLOAT,
                     dias_sem_estudar INTEGER DEFAULT 0,
-                    ia_geracoes_por_dia JSONB DEFAULT '{}'::jsonb
+                    ia_geracoes_por_dia JSONB DEFAULT '{}'::jsonb,
+                    erro_notebook JSONB DEFAULT '[]'::jsonb
                 )
             """)
             # Plans table
@@ -52,13 +55,22 @@ def init_db():
                     payload JSONB NOT NULL
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS telemetry_events (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id VARCHAR(255),
+                    event_name VARCHAR(100) NOT NULL,
+                    payload JSONB DEFAULT '{}'::jsonb,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            """)
         conn.commit()
 
 # Initialize DB on import
 try:
     init_db()
 except Exception as e:
-    print(f"Error initializing DB: {e}")
+    logger.exception("Error initializing DB: %s", e)
 
 def _hoje_utc() -> date:
     return date.today()
@@ -70,6 +82,7 @@ def get_user_metrics(user_id: str) -> dict[str, Any]:
             row = cur.fetchone()
             if row:
                 row["ia_geracoes_por_dia"] = row["ia_geracoes_por_dia"] or {}
+                row["erro_notebook"] = row.get("erro_notebook") or []
                 return row
 
             cur.execute(
@@ -77,7 +90,9 @@ def get_user_metrics(user_id: str) -> dict[str, Any]:
                 (user_id,)
             )
             conn.commit()
-            return cur.fetchone()
+            row = cur.fetchone()
+            row["erro_notebook"] = row.get("erro_notebook") or []
+            return row
 
 def registrar_estudo(user_id: str, studied_on: date | None = None) -> dict[str, Any]:
     hoje = studied_on or _hoje_utc()
@@ -160,3 +175,42 @@ def increment_ia_daily_count(user_id: str, day: date | None = None) -> int:
             cur.execute("UPDATE users SET ia_geracoes_por_dia = %s::jsonb WHERE id = %s", (json.dumps(counts), user_id))
             conn.commit()
     return atual
+
+
+def add_error_notebook_entry(user_id: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
+    metrics = get_user_metrics(user_id)
+    notebook = list(metrics.get("erro_notebook") or [])
+    notebook.append(entry)
+    notebook = notebook[-200:]
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET erro_notebook = %s::jsonb WHERE id = %s RETURNING erro_notebook",
+                (json.dumps(notebook), user_id),
+            )
+            conn.commit()
+            updated = cur.fetchone()
+            return updated["erro_notebook"] if updated else notebook
+
+
+def get_error_notebook(user_id: str) -> list[dict[str, Any]]:
+    metrics = get_user_metrics(user_id)
+    return list(metrics.get("erro_notebook") or [])
+
+
+def log_telemetry(user_id: str | None, event_name: str, payload: dict[str, Any] | None = None) -> None:
+    event_payload = payload or {}
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO telemetry_events (user_id, event_name, payload)
+                    VALUES (%s, %s, %s::jsonb)
+                    """,
+                    (user_id, event_name, json.dumps(event_payload)),
+                )
+                conn.commit()
+    except Exception as exc:
+        logger.warning("Falha ao registrar telemetria: %s", exc)
