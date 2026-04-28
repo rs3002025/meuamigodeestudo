@@ -28,18 +28,18 @@
       @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap');
 
       :root {
-        --bg-color: #0b0914;
-        --text-main: #e2dcf2;
-        --primary: #9d4edd;
-        --primary-shadow: #7b2cbf;
-        --secondary: #00f5d4;
-        --secondary-shadow: #00bbf9;
-        --gray: #241938;
-        --gray-shadow: #140d24;
-        --dark-gray: #7a6e96;
+        --bg-color: #070411;
+        --text-main: #efe9ff;
+        --primary: #8b5cf6;
+        --primary-shadow: #6d28d9;
+        --secondary: #22d3ee;
+        --secondary-shadow: #0284c7;
+        --gray: #2b1f44;
+        --gray-shadow: #180f2b;
+        --dark-gray: #a99cc7;
         --error: #ff0054;
-        --card-bg: rgba(36, 25, 56, 0.6);
-        --card-border: rgba(157, 78, 221, 0.3);
+        --card-bg: rgba(26, 15, 46, 0.72);
+        --card-border: rgba(139, 92, 246, 0.4);
       }
 
       * { box-sizing: border-box; }
@@ -52,14 +52,17 @@
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, #0b0914 60%);
+        background-image:
+          radial-gradient(circle at 20% 10%, rgba(34,211,238,0.18), transparent 40%),
+          radial-gradient(circle at 80% 0%, rgba(139,92,246,0.25), transparent 35%),
+          linear-gradient(180deg, #12052a 0%, #090514 80%);
         background-attachment: fixed;
       }
 
       .app-container {
         width: 100%;
         max-width: 480px;
-        background: rgba(11, 9, 20, 0.4);
+        background: rgba(8, 5, 18, 0.52);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         min-height: 100vh;
@@ -67,9 +70,9 @@
         flex-direction: column;
         padding: 20px;
         position: relative;
-        border-left: 1px solid var(--card-border);
-        border-right: 1px solid var(--card-border);
-        box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        border-left: 1px solid rgba(139,92,246,0.24);
+        border-right: 1px solid rgba(139,92,246,0.24);
+        box-shadow: 0 0 60px rgba(5, 4, 10, 0.75);
       }
 
       h1, h2, h3 { margin-top: 0; }
@@ -124,16 +127,17 @@
       }
 
       .btn-primary {
-        background-color: var(--primary);
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         color: white;
-        border-bottom: 4px solid var(--primary-shadow);
+        border-bottom: 4px solid #5b21b6;
+        box-shadow: 0 10px 26px rgba(124,58,237,0.35);
       }
       .btn-primary:active { border-bottom-width: 0px; margin-top: 4px; }
 
       .btn-secondary {
-        background-color: var(--secondary);
+        background: linear-gradient(135deg, #22d3ee, #06b6d4);
         color: white;
-        border-bottom: 4px solid var(--secondary-shadow);
+        border-bottom: 4px solid #0e7490;
       }
       .btn-secondary:active { border-bottom-width: 0px; margin-top: 4px; }
 
@@ -174,8 +178,8 @@
       }
 
       .task-node {
-        width: 80px;
-        height: 80px;
+        width: 88px;
+        height: 88px;
         border-radius: 50%;
         display: flex;
         justify-content: center;
@@ -199,8 +203,9 @@
       }
 
       .task-node.active {
-        background: var(--secondary);
-        border-bottom: 6px solid var(--secondary-shadow);
+        background: linear-gradient(140deg, #22d3ee, #14b8a6);
+        border-bottom: 6px solid #0f766e;
+        box-shadow: 0 12px 26px rgba(34,211,238,0.35);
         animation: bounce 2s infinite;
       }
       @keyframes bounce {
@@ -221,7 +226,7 @@
         font-weight: 800;
         text-align: center;
         width: 250px;
-        color: #64748b;
+        color: #cbd5e1;
         z-index: 2;
       }
 
@@ -283,7 +288,7 @@
         font-weight: 700;
         position: relative;
         margin-bottom: 30px;
-        box-shadow: 0 10px 28px rgba(14, 8, 29, 0.25);
+        box-shadow: 0 12px 34px rgba(14, 8, 29, 0.3);
         color: #1f1632;
       }
 
@@ -342,11 +347,17 @@
         color: #fff;
         cursor: pointer;
       }
+      .exercise-area {
+        margin-top: 10px;
+      }
+      .exercise-area button {
+        margin-top: 8px;
+      }
 
       .bottom-bar {
         margin-top: auto;
         padding-top: 20px;
-        border-top: 2px solid var(--gray);
+        border-top: 2px solid rgba(139,92,246,0.35);
       }
 
       .error-msg {
@@ -931,6 +942,11 @@
                  const btnVerificar = document.createElement('button');
                  btnVerificar.textContent = "Verificar Resposta";
 
+                 const btnPular = document.createElement('button');
+                 btnPular.textContent = "Pular questão";
+                 btnPular.style.marginLeft = '8px';
+                 btnPular.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+
                  const feedbackDiv = document.createElement('div');
                  feedbackDiv.className = 'exercise-feedback hidden';
 
@@ -980,8 +996,33 @@
                      }
                  };
 
+                 btnPular.onclick = () => {
+                     textarea.value = '';
+                     textarea.disabled = true;
+                     btnVerificar.style.display = 'none';
+                     btnPular.style.display = 'none';
+
+                     feedbackDiv.classList.remove('hidden');
+                     feedbackDiv.style.backgroundColor = '#fff7ed';
+                     feedbackDiv.style.color = '#9a3412';
+                     feedbackDiv.innerHTML = '<div>⏭️ Questão pulada. Você pode revisar depois.</div>';
+
+                     if (i === perguntas.length - 1) {
+                         const btnNext = document.createElement('button');
+                         btnNext.textContent = "Continuar";
+                         btnNext.style.marginTop = "10px";
+                         btnNext.onclick = () => {
+                             btnNext.style.display = 'none';
+                             state.lessonStep++;
+                             renderLessonFlow();
+                         };
+                         content.appendChild(btnNext);
+                     }
+                 };
+
                  exArea.appendChild(textarea);
                  exArea.appendChild(btnVerificar);
+                 exArea.appendChild(btnPular);
                  exArea.appendChild(feedbackDiv);
                  content.appendChild(exArea);
 
