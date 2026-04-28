@@ -699,10 +699,7 @@
           const ctx = document.getElementById(canvasId).getContext('2d');
           const dados = visualData.dados || {};
 
-          let chartType = 'line';
-          if (visualData.tipo === 'tabela' || (dados.labels && dados.valores)) {
-             chartType = 'bar'; // Fallback visual
-          }
+          const chartType = 'line';
 
           let labels = dados.x || dados.labels || [];
           let values = dados.y || (dados.valores && dados.valores.length > 0 ? dados.valores[0] : []);
@@ -812,14 +809,25 @@
              vDiv.className = 'visual-container';
 
              if (bloco.visual.descricao) {
-                 const desc = document.createElement('p');
+                 const desc = document.createElement('div');
                  desc.style.marginBottom = '10px';
-                 desc.style.color = '#94a3b8';
-                 desc.textContent = bloco.visual.descricao;
+                 desc.style.color = '#64748b';
+                 await renderMarkdown(desc, bloco.visual.descricao);
                  vDiv.appendChild(desc);
              }
 
-             if (bloco.visual.tipo === 'tabela' && bloco.visual.dados && bloco.visual.dados.labels && bloco.visual.dados.valores) {
+             if (bloco.visual.tipo === 'diagrama') {
+                 const info = document.createElement('div');
+                 info.style.padding = '12px';
+                 info.style.borderRadius = '10px';
+                 info.style.background = 'rgba(125, 76, 219, 0.08)';
+                 info.style.color = '#334155';
+                 info.textContent = 'Visual conceitual: foque na interpretação da inclinação e do intercepto.';
+                 content.appendChild(vDiv);
+                 content.appendChild(info);
+                 feed.appendChild(card);
+             }
+             else if (bloco.visual.tipo === 'tabela' && bloco.visual.dados && bloco.visual.dados.labels && bloco.visual.dados.valores) {
                  // Renderizar tabela HTML ao invez de chartjs de barra, pra ficar melhor
                  let tableHtml = '<table style="width:100%; text-align:left; color:#f8fafc; border-collapse: collapse; margin-top: 10px;">';
                  tableHtml += '<tr>';

@@ -26,24 +26,19 @@ def _objetivo_para_lista(objetivo: str | list[str]) -> list[str]:
 
 def montar_trilha(materia: str, subtemas: list[dict]) -> list[dict]:
     trilha = []
+    vistos: set[str] = set()
     for s in subtemas:
         nome = s.get("nome", "Tema")
         foco = s.get("foco_delimitado", "")
+        chave = f"{materia.strip().lower()}::{str(nome).strip().lower()}"
+        if chave in vistos:
+            continue
+        vistos.add(chave)
         trilha.append({
             "materia": materia,
             "tema": nome,
             "foco_delimitado": foco,
             "tipo": "teoria"
-        })
-        trilha.append({
-            "materia": materia,
-            "tema": nome,
-            "tipo": "questoes"
-        })
-        trilha.append({
-            "materia": materia,
-            "tema": nome,
-            "tipo": "revisao"
         })
     return trilha
 
