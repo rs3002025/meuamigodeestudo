@@ -1,10 +1,16 @@
 import sympy as sp
 import numpy as np
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 def gerar_pontos_funcao(funcao: str):
     try:
+        if len((funcao or "").strip()) > 120:
+            return [], []
         # Prepara a string da função
-        expr_str = funcao.lower().replace("y=", "").replace("^", "**")
+        expr_str = re.sub(r"^\s*y\s*=\s*", "", funcao.lower()).replace("^", "**")
 
         # Usa sympy para fazer parse seguro da expressão matemática e avaliar para os valores de x
         x_sym = sp.Symbol('x')
@@ -23,7 +29,7 @@ def gerar_pontos_funcao(funcao: str):
         return [float(x) for x in x_vals], y_vals
 
     except Exception as e:
-        print("Erro função:", e)
+        logger.warning("Erro função: %s", e)
         return [], []
 
 def processar_visual(visual: dict):
