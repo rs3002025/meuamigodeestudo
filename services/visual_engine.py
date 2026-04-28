@@ -24,6 +24,9 @@ def gerar_pontos_funcao(funcao: str):
         # Prepara a string da função
         expr_str = re.sub(r"^\s*y\s*=\s*", "", funcao.lower()).replace("^", "**")
         expr_str = expr_str.replace("$$", "").replace("$", "").strip()
+        expr_str = re.sub(r"(?<=\d)\s*(?=[a-z(])", "*", expr_str)   # 4x -> 4*x
+        expr_str = re.sub(r"(?<=[a-z)])\s*(?=\d)", "*", expr_str)   # x2 -> x*2
+        expr_str = re.sub(r"(?<=[a-z)])\s*(?=\()", "*", expr_str)   # x(x+1) -> x*(x+1)
 
         # Evita gráficos inválidos com parâmetros simbólicos (a, b, etc.) sem valor numérico
         simbolos_invalidos = re.findall(r"[a-wyz]", expr_str)
@@ -51,13 +54,11 @@ def gerar_pontos_funcao(funcao: str):
         return [], []
 
 def processar_visual(visual: dict):
-    if visual.get("tipo") != "grafico":
-        return visual
-
     # Se a IA informar a função matemática, nós geramos os pontos pra ela.
     # Ex: "funcao": "y = x^2 - 4x + 3"
     funcao_str = visual.get("funcao") or visual.get("dados", {}).get("funcao")
     if funcao_str:
+        visual["tipo"] = "grafico"
         x, y = gerar_pontos_funcao(funcao_str)
         if x and y:
             # Cria ou recria o 'dados' com as arrays que o frontend precisa
@@ -65,6 +66,10 @@ def processar_visual(visual: dict):
         else:
             # Fallback para casos conceituais (ex: y = ax + b)
             visual["tipo"] = "diagrama"
+        return visual
+
+    if visual.get("tipo") != "grafico":
+        return visual
 
     return visual
 
