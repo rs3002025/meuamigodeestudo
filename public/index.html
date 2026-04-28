@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amigo de Estudo</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='50'%3E%F0%9F%A4%96%3C/text%3E%3C/svg%3E" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module">
@@ -11,7 +12,6 @@
       mermaid.initialize({ startOnLoad: false, theme: 'default' });
       window.mermaid = mermaid;
     </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
       window.MathJax = {
@@ -264,7 +264,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        min-height: 0;
       }
 
       .lesson-character {
@@ -274,8 +274,8 @@
       }
 
       .lesson-bubble {
-        background: #ffffff;
-        border: 2px solid var(--gray);
+        background: linear-gradient(180deg, #ffffff 0%, #f7f5ff 100%);
+        border: 2px solid rgba(36, 25, 56, 0.2);
         border-radius: 16px;
         padding: 24px;
         font-size: 18px;
@@ -283,8 +283,8 @@
         font-weight: 700;
         position: relative;
         margin-bottom: 30px;
-        box-shadow: 0 4px 0 var(--gray);
-        color: var(--text-main);
+        box-shadow: 0 10px 28px rgba(14, 8, 29, 0.25);
+        color: #1f1632;
       }
 
       .lesson-bubble::before {
@@ -310,14 +310,37 @@
 
       .lesson-badge {
         display: inline-block;
-        background: var(--secondary);
-        color: white;
-        padding: 4px 10px;
+        background: linear-gradient(135deg, #22d3ee, #10b981);
+        color: #ffffff;
+        padding: 6px 12px;
         border-radius: 8px;
-        font-size: 12px;
+        font-size: 11px;
         text-transform: uppercase;
         font-weight: 900;
         margin-bottom: 12px;
+        letter-spacing: 0.6px;
+      }
+      #lesson-feed {
+        overflow-y: auto;
+        flex: 1;
+        padding-right: 4px;
+      }
+      .lesson-content-inner {
+        color: #251a3d;
+      }
+      .lesson-content-inner textarea {
+        background: #f8f9ff;
+        color: #1e1b2e;
+        border: 1px solid #d1d5ff;
+      }
+      .lesson-content-inner button {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #7c3aed, #9333ea);
+        color: #fff;
+        cursor: pointer;
       }
 
       .bottom-bar {
@@ -451,16 +474,7 @@
         </div>
 
         <div class="lesson-card">
-          <div class="lesson-character">🤖</div>
-          <div class="lesson-bubble">
-            <div id="lesson-badge" class="lesson-badge">Explicação</div>
-            <div id="lesson-content">
-              <!-- Content injected here -->
-            </div>
-          </div>
-          <div id="lesson-interactive-area" class="hidden">
-            <textarea id="lesson-answer" rows="3" placeholder="Sua resposta..."></textarea>
-          </div>
+          <div id="lesson-feed"></div>
         </div>
 
         <p id="err-lesson" class="error-msg"></p>
@@ -657,49 +671,14 @@
       };
 
       $('btn-lesson-action').onclick = async () => {
-        const btn = $('btn-lesson-action');
-        $('err-lesson').textContent = '';
-
-        // Validate answer if on an exercise step
-        if (state.lessonStep >= 2) {
-            const ans = $('lesson-answer').value.trim();
-            if(!ans) {
-                $('err-lesson').textContent = 'Você precisa escrever uma resposta!';
-                return;
-            }
-        }
-
-        const exerciciosCount = (state.lessonActive.conteudo.exercicios || []).length;
-        const actualTotalSteps = 2 + exerciciosCount;
-
-        // Se o tipo é teoria, o fim da lição é no passo 1 (Exemplo)
-        // Se o tipo é questoes, o fim da lição é no último exercício
-        const isLastStep = state.lessonActive.tipo === 'teoria' ? state.lessonStep >= 1 : state.lessonStep >= actualTotalSteps - 1;
-
-        if (isLastStep) {
-          try {
-            btn.textContent = 'Concluindo...'; btn.disabled = true;
-            const data = await post(`/api/tarefas/${state.userId}/concluir`, { taskId: state.lessonActive.id });
-            state.tarefas = data.tarefas;
-            $('journey-msg').textContent = data.feedback || 'Muito bem! Lição concluída!';
-            buildJourney();
-            hideAllScreens();
-            $('screen-journey').classList.remove('hidden');
-          } catch(e) {
-            $('err-lesson').textContent = e.message;
-          } finally {
-            btn.textContent = 'Continuar'; btn.disabled = false;
-          }
-        } else {
-          // Advance lesson
-          state.lessonStep++;
-          renderLessonStep();
-        }
+        // Fluxo linear usa botões dentro do feed de aula.
+        return;
       };
 
 
       async function renderMarkdown(targetDiv, mdText) {
-          targetDiv.innerHTML = `<div class="markdown-body">${marked.parse(mdText)}</div>`;
+          const safeText = (mdText || '').toString().trim() || 'Conteúdo indisponível para este bloco.';
+          targetDiv.innerHTML = `<div class="markdown-body">${marked.parse(safeText)}</div>`;
           if (window.MathJax) {
             await MathJax.typesetPromise([targetDiv]);
           }
