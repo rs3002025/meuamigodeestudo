@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from math import ceil
 from services.db import get_user_metrics, get_db_connection
 from services.ia_service import gerar_estrutura_tema
 
@@ -130,6 +131,34 @@ def ajustar_plano_com_desempenho(user_id: str, desempenho_dia: dict) -> dict | N
         with conn.cursor() as cur:
             cur.execute("UPDATE plans SET payload = %s::jsonb WHERE user_id = %s", (json.dumps(atualizado), user_id))
             cur.execute("UPDATE users SET ultima_taxa_acerto = %s WHERE id = %s", (taxa_acerto, user_id))
+            conn.commit()
+
+    return atualizado
+
+
+def ajustar_plano_por_prazo(user_id: str, dias_ate_prova: int) -> dict | None:
+    plano = buscar_plano(user_id)
+    if not plano:
+        return None
+
+    trilha_total = len(plano.get("trilha_subtemas", []))
+    progresso = int(plano.get("progresso_trilha", 0))
+    restante = max(0, trilha_total - progresso)
+    dias = max(1, dias_ate_prova)
+    blocos_dia = max(1, ceil(restante / dias))
+    nova_carga = min(180, max(30, plano.get("cargaDiaria", 60) + blocos_dia * 5))
+
+    atualizado = {
+        **plano,
+        "deadline": {"diasAteProva": dias_ate_prova, "blocosSugeridosPorDia": blocos_dia},
+        "cargaDiaria": nova_carga,
+        "versao": plano["versao"] + 1,
+        "atualizadoEm": _agora_iso(),
+    }
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE plans SET payload = %s::jsonb WHERE user_id = %s", (json.dumps(atualizado), user_id))
             conn.commit()
 
     return atualizado
