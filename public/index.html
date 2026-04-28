@@ -28,18 +28,18 @@
       @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap');
 
       :root {
-        --bg-color: #070411;
-        --text-main: #efe9ff;
-        --primary: #8b5cf6;
-        --primary-shadow: #6d28d9;
-        --secondary: #22d3ee;
-        --secondary-shadow: #0284c7;
-        --gray: #2b1f44;
-        --gray-shadow: #180f2b;
-        --dark-gray: #a99cc7;
+        --bg-color: #f4f7ff;
+        --text-main: #1e293b;
+        --primary: #2563eb;
+        --primary-shadow: #1d4ed8;
+        --secondary: #10b981;
+        --secondary-shadow: #0f766e;
+        --gray: #dbe7ff;
+        --gray-shadow: #c4d4f8;
+        --dark-gray: #64748b;
         --error: #ff0054;
-        --card-bg: rgba(26, 15, 46, 0.72);
-        --card-border: rgba(139, 92, 246, 0.4);
+        --card-bg: rgba(255, 255, 255, 0.85);
+        --card-border: rgba(37, 99, 235, 0.2);
       }
 
       * { box-sizing: border-box; }
@@ -53,16 +53,16 @@
         justify-content: center;
         min-height: 100vh;
         background-image:
-          radial-gradient(circle at 20% 10%, rgba(34,211,238,0.18), transparent 40%),
-          radial-gradient(circle at 80% 0%, rgba(139,92,246,0.25), transparent 35%),
-          linear-gradient(180deg, #12052a 0%, #090514 80%);
+          radial-gradient(circle at 10% -10%, rgba(37,99,235,0.16), transparent 35%),
+          radial-gradient(circle at 90% 0%, rgba(16,185,129,0.14), transparent 30%),
+          linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%);
         background-attachment: fixed;
       }
 
       .app-container {
         width: 100%;
         max-width: 480px;
-        background: rgba(8, 5, 18, 0.52);
+        background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(248,251,255,0.95));
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         min-height: 100vh;
@@ -70,9 +70,9 @@
         flex-direction: column;
         padding: 20px;
         position: relative;
-        border-left: 1px solid rgba(139,92,246,0.24);
-        border-right: 1px solid rgba(139,92,246,0.24);
-        box-shadow: 0 0 60px rgba(5, 4, 10, 0.75);
+        border-left: 1px solid rgba(37,99,235,0.12);
+        border-right: 1px solid rgba(37,99,235,0.12);
+        box-shadow: 0 20px 60px rgba(30, 64, 175, 0.12);
       }
 
       h1, h2, h3 { margin-top: 0; }
@@ -85,18 +85,18 @@
         font-family: 'Nunito', sans-serif;
         font-size: 16px;
         padding: 14px;
-        border: 1px solid var(--card-border);
+        border: 1px solid #bfdbfe;
         border-radius: 12px;
-        background: rgba(0,0,0,0.3);
-        color: #ffffff;
+        background: #ffffff;
+        color: #0f172a;
         margin-bottom: 16px;
         outline: none;
         transition: border 0.2s, box-shadow 0.2s;
-        box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 14px rgba(30, 64, 175, 0.08);
       }
       input:focus, textarea:focus {
         border-color: var(--secondary);
-        box-shadow: 0 0 10px rgba(0, 245, 212, 0.3), inset 0 2px 6px rgba(0,0,0,0.5);
+        box-shadow: 0 0 0 3px rgba(16,185,129,0.2);
       }
       label { font-weight: 800; font-size: 18px; display: block; margin-bottom: 8px; color: var(--secondary); letter-spacing: 0.5px;}
 
@@ -127,17 +127,17 @@
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
         color: white;
-        border-bottom: 4px solid #5b21b6;
-        box-shadow: 0 10px 26px rgba(124,58,237,0.35);
+        border-bottom: 4px solid #1d4ed8;
+        box-shadow: 0 10px 24px rgba(37,99,235,0.28);
       }
       .btn-primary:active { border-bottom-width: 0px; margin-top: 4px; }
 
       .btn-secondary {
-        background: linear-gradient(135deg, #22d3ee, #06b6d4);
+        background: linear-gradient(135deg, #10b981, #34d399);
         color: white;
-        border-bottom: 4px solid #0e7490;
+        border-bottom: 4px solid #0f766e;
       }
       .btn-secondary:active { border-bottom-width: 0px; margin-top: 4px; }
 
@@ -203,9 +203,9 @@
       }
 
       .task-node.active {
-        background: linear-gradient(140deg, #22d3ee, #14b8a6);
-        border-bottom: 6px solid #0f766e;
-        box-shadow: 0 12px 26px rgba(34,211,238,0.35);
+        background: linear-gradient(140deg, #10b981, #22c55e);
+        border-bottom: 6px solid #15803d;
+        box-shadow: 0 10px 20px rgba(16,185,129,0.25);
         animation: bounce 2s infinite;
       }
       @keyframes bounce {
@@ -279,16 +279,16 @@
       }
 
       .lesson-bubble {
-        background: linear-gradient(180deg, #ffffff 0%, #f7f5ff 100%);
-        border: 2px solid rgba(36, 25, 56, 0.2);
-        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+        border: 2px solid rgba(37,99,235,0.12);
+        border-radius: 22px;
         padding: 24px;
         font-size: 18px;
         line-height: 1.5;
         font-weight: 700;
         position: relative;
         margin-bottom: 30px;
-        box-shadow: 0 12px 34px rgba(14, 8, 29, 0.3);
+        box-shadow: 0 14px 34px rgba(30, 64, 175, 0.14);
         color: #1f1632;
       }
 
@@ -315,7 +315,7 @@
 
       .lesson-badge {
         display: inline-block;
-        background: linear-gradient(135deg, #22d3ee, #10b981);
+        background: linear-gradient(135deg, #2563eb, #10b981);
         color: #ffffff;
         padding: 6px 12px;
         border-radius: 8px;

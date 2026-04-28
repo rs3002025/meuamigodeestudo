@@ -3,12 +3,60 @@ import os
 from datetime import date, timedelta
 from typing import Any
 import logging
+import re
+import unicodedata
 
 import psycopg
 from psycopg.rows import dict_row
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 logger = logging.getLogger(__name__)
+
+
+def _normalize_cache_fragment(text: str) -> str:
+    raw = (text or "").strip().lower()
+    raw = "".join(
+        c for c in unicodedata.normalize("NFKD", raw) if not unicodedata.combining(c)
+    )
+    raw = re.sub(r"[^a-z0-9\s]", " ", raw)
+
+    # Sinônimos e variações frequentes para melhorar reaproveitamento semântico
+    synonyms = {
+        "funcao do primeiro grau": "funcao afim",
+        "funcao de primeiro grau": "funcao afim",
+        "funcao 1 grau": "funcao afim",
+        "equacao da reta": "funcao afim",
+        "reta de 1 grau": "funcao afim",
+        "intercepto": "coeficiente linear",
+        "inclinacao": "coeficiente angular",
+    }
+    for source, target in synonyms.items():
+        raw = raw.replace(source, target)
+
+    stopwords = {"de", "do", "da", "e", "em", "para", "o", "a", "no", "na"}
+    tokens = [t for t in raw.split() if t and t not in stopwords]
+    tokens = sorted(set(tokens))
+    return " ".join(tokens)
+
+
+def _cache_key_variants(materia: str, tema: str, foco_delimitado: str = "") -> list[str]:
+    m = _normalize_cache_fragment(materia)
+    t = _normalize_cache_fragment(tema)
+    f = _normalize_cache_fragment(foco_delimitado)
+
+    keys = [f"{m}:{t}:{f}", f"{m}:{t}:", f"{m}:{t}:geral"]
+
+    # fallback por matéria + raiz do tema (primeiros tokens) para captar frases diferentes do mesmo tema
+    raiz = " ".join(t.split()[:3]).strip()
+    if raiz:
+        keys.append(f"{m}:{raiz}:")
+
+    # Remove vazios/duplicados mantendo ordem
+    out: list[str] = []
+    for k in keys:
+        if k and k not in out:
+            out.append(k)
+    return out
 
 def get_db_connection():
     if not DATABASE_URL:
@@ -137,24 +185,26 @@ def atualizar_dias_sem_estudar(user_id: str, ref_day: date | None = None) -> dic
             return cur.fetchone()
 
 def get_cached_content(materia: str, tema: str, foco_delimitado: str = "") -> dict[str, Any] | None:
-    foco = foco_delimitado.strip().lower() if foco_delimitado else ""
-    key = f"{materia.strip().lower()}:{tema.strip().lower()}:{foco}"
+    keys = _cache_key_variants(materia, tema, foco_delimitado)
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT payload FROM content_cache WHERE cache_key = %s", (key,))
+            cur.execute(
+                "SELECT payload FROM content_cache WHERE cache_key = ANY(%s) LIMIT 1",
+                (keys,),
+            )
             row = cur.fetchone()
             return row["payload"] if row else None
 
 def set_cached_content(materia: str, tema: str, foco_delimitado: str, content: dict[str, Any]) -> None:
-    foco = foco_delimitado.strip().lower() if foco_delimitado else ""
-    key = f"{materia.strip().lower()}:{tema.strip().lower()}:{foco}"
+    keys = _cache_key_variants(materia, tema, foco_delimitado)
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO content_cache (cache_key, payload)
-                VALUES (%s, %s::jsonb)
-                ON CONFLICT (cache_key) DO UPDATE SET payload = EXCLUDED.payload
-            """, (key, json.dumps(content)))
+            for key in keys:
+                cur.execute("""
+                    INSERT INTO content_cache (cache_key, payload)
+                    VALUES (%s, %s::jsonb)
+                    ON CONFLICT (cache_key) DO UPDATE SET payload = EXCLUDED.payload
+                """, (key, json.dumps(content)))
             conn.commit()
 
 def get_ia_daily_count(user_id: str, day: date | None = None) -> int:
