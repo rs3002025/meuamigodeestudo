@@ -207,6 +207,34 @@ def set_cached_content(materia: str, tema: str, foco_delimitado: str, content: d
                 """, (key, json.dumps(content)))
             conn.commit()
 
+
+def get_cached_topic_structure(tema: str) -> list[dict[str, Any]] | None:
+    key = f"estrutura::{_normalize_cache_fragment(tema)}"
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT payload FROM content_cache WHERE cache_key = %s", (key,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            payload = row["payload"] or {}
+            return payload.get("subtemas") if isinstance(payload, dict) else None
+
+
+def set_cached_topic_structure(tema: str, subtemas: list[dict[str, Any]]) -> None:
+    key = f"estrutura::{_normalize_cache_fragment(tema)}"
+    payload = {"subtemas": subtemas}
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO content_cache (cache_key, payload)
+                VALUES (%s, %s::jsonb)
+                ON CONFLICT (cache_key) DO UPDATE SET payload = EXCLUDED.payload
+                """,
+                (key, json.dumps(payload)),
+            )
+            conn.commit()
+
 def get_ia_daily_count(user_id: str, day: date | None = None) -> int:
     metrics = get_user_metrics(user_id)
     hoje = (day or _hoje_utc()).isoformat()

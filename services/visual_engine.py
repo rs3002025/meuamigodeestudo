@@ -5,6 +5,18 @@ import re
 
 logger = logging.getLogger(__name__)
 
+
+def _pontos_conceituais(expr_str: str):
+    x_vals = np.linspace(-4, 4, 9)
+    if "a*x" in expr_str or "ax" in expr_str or "x+b" in expr_str or "x + b" in expr_str:
+        y_vals = [round(1.5 * float(x) + 1, 2) for x in x_vals]
+        return [round(float(x), 2) for x in x_vals], y_vals
+    if "^x" in expr_str or "**x" in expr_str or "exp" in expr_str:
+        y_vals = [round(float(2 ** x), 2) for x in x_vals]
+        return [round(float(x), 2) for x in x_vals], y_vals
+    return [], []
+
+
 def gerar_pontos_funcao(funcao: str):
     try:
         if len((funcao or "").strip()) > 120:
@@ -16,7 +28,7 @@ def gerar_pontos_funcao(funcao: str):
         # Evita gráficos inválidos com parâmetros simbólicos (a, b, etc.) sem valor numérico
         simbolos_invalidos = re.findall(r"[a-wyz]", expr_str)
         if simbolos_invalidos:
-            return [], []
+            return _pontos_conceituais(expr_str)
 
         # Usa sympy para fazer parse seguro da expressão matemática e avaliar para os valores de x
         x_sym = sp.Symbol('x')
