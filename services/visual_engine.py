@@ -22,17 +22,17 @@ def gerar_pontos_funcao(funcao: str):
         x_sym = sp.Symbol('x')
         expr = sp.sympify(expr_str)
 
-        # Cria uma lista de 50 pontos entre -10 e 10
-        x_vals = np.linspace(-10, 10, 50)
+        # Cria uma lista menor e mais pedagógica de pontos entre -6 e 6
+        x_vals = np.linspace(-6, 6, 13)
         y_vals = []
 
         for x_val in x_vals:
             # Avalia a expressão para o valor de x atual
             y = expr.evalf(subs={x_sym: x_val})
-            y_vals.append(float(y))
+            y_vals.append(round(float(y), 2))
 
         # Precisamos retornar como list() para que a serialização JSONB do db.py não quebre
-        return [float(x) for x in x_vals], y_vals
+        return [round(float(x), 2) for x in x_vals], y_vals
 
     except Exception as e:
         logger.warning("Erro função: %s", e)

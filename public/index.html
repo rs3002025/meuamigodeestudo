@@ -698,37 +698,78 @@
       function buildChart(canvasId, visualData) {
           const ctx = document.getElementById(canvasId).getContext('2d');
           const dados = visualData.dados || {};
+          let xVals = Array.isArray(dados.x) ? dados.x.map(Number).filter(Number.isFinite) : [];
+          let yVals = Array.isArray(dados.y) ? dados.y.map(Number).filter(Number.isFinite) : [];
 
-          const chartType = 'line';
-
-          let labels = dados.x || dados.labels || [];
-          let values = dados.y || (dados.valores && dados.valores.length > 0 ? dados.valores[0] : []);
-
-          if (!labels.length && !values.length) {
-              labels = [0]; values = [0]; // fallback
+          if (!xVals.length || !yVals.length || xVals.length !== yVals.length) {
+              xVals = [-2, -1, 0, 1, 2];
+              yVals = [-3, -1, 1, 3, 5];
           }
 
+          const pontos = xVals.map((x, i) => ({ x, y: yVals[i] }));
+          const intercepto = pontos.find(p => p.x === 0) || null;
+          const minX = Math.min(...xVals) - 1;
+          const maxX = Math.max(...xVals) + 1;
+
           new Chart(ctx, {
-              type: chartType,
+              type: 'scatter',
               data: {
-                  labels: labels,
-                  datasets: [{
-                      label: visualData.funcao || 'Dados',
-                      data: values,
-                      borderColor: '#3b82f6',
-                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                      borderWidth: 2,
-                      tension: 0.4
-                  }]
+                  datasets: [
+                    {
+                      type: 'line',
+                      label: visualData.funcao || 'Reta da função',
+                      data: pontos,
+                      parsing: false,
+                      borderColor: '#2563eb',
+                      backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                      borderWidth: 3,
+                      pointRadius: 4,
+                      pointHoverRadius: 6,
+                      tension: 0
+                    },
+                    intercepto ? {
+                      type: 'scatter',
+                      label: 'Intercepto em y',
+                      data: [intercepto],
+                      parsing: false,
+                      borderColor: '#f97316',
+                      backgroundColor: '#f97316',
+                      pointRadius: 7
+                    } : null,
+                    {
+                      type: 'line',
+                      label: 'eixo x',
+                      data: [{x: minX, y: 0}, {x: maxX, y: 0}],
+                      parsing: false,
+                      borderColor: 'rgba(100, 116, 139, 0.5)',
+                      borderWidth: 1.5,
+                      pointRadius: 0
+                    }
+                  ].filter(Boolean)
               },
               options: {
                   responsive: true,
+                  maintainAspectRatio: true,
                   plugins: {
-                      legend: { labels: { color: '#f8fafc' } }
+                      legend: { labels: { color: '#334155', font: { weight: '700' } } },
+                      tooltip: {
+                        callbacks: {
+                          label: (ctx) => `x=${ctx.raw.x}, y=${ctx.raw.y}`
+                        }
+                      }
                   },
                   scales: {
-                      x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                      y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                      x: {
+                        type: 'linear',
+                        title: { display: true, text: 'Eixo x', color: '#334155', font: { weight: '700' } },
+                        ticks: { color: '#64748b', maxTicksLimit: 8 },
+                        grid: { color: 'rgba(100,116,139,0.2)' }
+                      },
+                      y: {
+                        title: { display: true, text: 'Eixo y', color: '#334155', font: { weight: '700' } },
+                        ticks: { color: '#64748b', maxTicksLimit: 7 },
+                        grid: { color: 'rgba(100,116,139,0.2)' }
+                      }
                   }
               }
           });
@@ -829,16 +870,16 @@
              }
              else if (bloco.visual.tipo === 'tabela' && bloco.visual.dados && bloco.visual.dados.labels && bloco.visual.dados.valores) {
                  // Renderizar tabela HTML ao invez de chartjs de barra, pra ficar melhor
-                 let tableHtml = '<table style="width:100%; text-align:left; color:#f8fafc; border-collapse: collapse; margin-top: 10px;">';
+                 let tableHtml = '<table style="width:100%; text-align:left; color:#334155; border-collapse: separate; border-spacing: 0; margin-top: 10px; border:1px solid #dbe4ff; border-radius: 10px; overflow:hidden;">';
                  tableHtml += '<tr>';
                  bloco.visual.dados.labels.forEach(l => {
-                     tableHtml += `<th style="border-bottom:1px solid rgba(255,255,255,0.2); padding:8px;">${l}</th>`;
+                     tableHtml += `<th style="background:#eef2ff; border-bottom:1px solid #dbe4ff; padding:10px; font-weight:800; color:#1e293b;">${l}</th>`;
                  });
                  tableHtml += '</tr>';
                  bloco.visual.dados.valores.forEach(row => {
                      tableHtml += '<tr>';
                      row.forEach(cell => {
-                         tableHtml += `<td style="border-bottom:1px solid rgba(255,255,255,0.1); padding:8px;">${cell}</td>`;
+                         tableHtml += `<td style="border-bottom:1px solid #e2e8f0; padding:10px; color:#334155;">${cell}</td>`;
                      });
                      tableHtml += '</tr>';
                  });
@@ -848,7 +889,7 @@
                  feed.appendChild(card);
              } else {
                  const canvasId = `chart-${state.lessonStep}`;
-                 vDiv.innerHTML += `<canvas id="${canvasId}"></canvas>`;
+                 vDiv.innerHTML += `<canvas id="${canvasId}" style="max-height:260px;"></canvas>`;
                  content.appendChild(vDiv);
                  feed.appendChild(card);
 
