@@ -4,12 +4,15 @@ import random
 import re
 import unicodedata
 from datetime import datetime, timezone
+import logging
 import requests
 
 from services.db import (
     get_cached_content,
     set_cached_content,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _titulo(txt: str) -> str:
@@ -125,13 +128,13 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         data = response.json()
         return data["choices"][0]["message"]["content"], None
     except requests.exceptions.HTTPError as e:
-        print(f"Erro HTTP da OpenAI ({response.status_code}): {response.text}")
+        logger.warning("Erro HTTP da OpenAI (%s): %s", response.status_code, response.text)
         return None, f"Erro HTTP {response.status_code}: {response.text}"
     except requests.exceptions.RequestException as e:
-        print(f"Erro de conexão na IA: {e}")
+        logger.warning("Erro de conexão na IA: %s", e)
         return None, f"Erro na requisição: {e}"
     except (json.JSONDecodeError, KeyError, IndexError) as e:
-        print(f"Erro no formato do retorno da IA: {e}")
+        logger.warning("Erro no formato do retorno da IA: %s", e)
         return None, f"Retorno inesperado da IA: {e}"
 
 
@@ -229,7 +232,7 @@ ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de 
             content = processar_aula(parsed)
             content["origem"] = "ia"
         except json.JSONDecodeError as e:
-            print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
+            logger.warning("Erro ao decodificar JSON gerado pela IA: %s", e)
             content = _fallback_conteudo(materia, tema, f"JSON Inválido: {e}")
             is_fallback = True
     else:
@@ -300,8 +303,8 @@ Retorne ESTRITAMENTE o formato JSON a seguir:
 
     # Fallback no caso da IA falhar na correção
     return {
-        "correto": True,
-        "feedback": "Tudo certo! Continue focado e vamos em frente."
+        "correto": False,
+        "feedback": "A correção automática está instável agora. Releia a teoria e tente responder de novo em 1-2 frases."
     }
 
 def classificar_erro(resposta_correta: str, resposta_usuario: str) -> str:
@@ -389,3 +392,13 @@ Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
             "foco_delimitado": "Exclusivo para casos de uso e exemplos práticos reais do dia a dia."
         }
     ]
+
+
+def recomendar_proximo_passo(taxa_acerto: float, erros_recorrentes: int) -> str:
+    if taxa_acerto < 0.6:
+        return "reforco"
+    if erros_recorrentes >= 2:
+        return "revisao-ativa"
+    if taxa_acerto >= 0.85:
+        return "simulado-curto"
+    return "avanco-controlado"
