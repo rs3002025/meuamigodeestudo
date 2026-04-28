@@ -4,12 +4,17 @@ import random
 import re
 import unicodedata
 from datetime import datetime, timezone
+import logging
 import requests
 
 from services.db import (
     get_cached_content,
     set_cached_content,
+    get_cached_topic_structure,
+    set_cached_topic_structure,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _titulo(txt: str) -> str:
@@ -125,13 +130,13 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         data = response.json()
         return data["choices"][0]["message"]["content"], None
     except requests.exceptions.HTTPError as e:
-        print(f"Erro HTTP da OpenAI ({response.status_code}): {response.text}")
+        logger.warning("Erro HTTP da OpenAI (%s): %s", response.status_code, response.text)
         return None, f"Erro HTTP {response.status_code}: {response.text}"
     except requests.exceptions.RequestException as e:
-        print(f"Erro de conexão na IA: {e}")
+        logger.warning("Erro de conexão na IA: %s", e)
         return None, f"Erro na requisição: {e}"
     except (json.JSONDecodeError, KeyError, IndexError) as e:
-        print(f"Erro no formato do retorno da IA: {e}")
+        logger.warning("Erro no formato do retorno da IA: %s", e)
         return None, f"Retorno inesperado da IA: {e}"
 
 
@@ -229,7 +234,7 @@ ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de 
             content = processar_aula(parsed)
             content["origem"] = "ia"
         except json.JSONDecodeError as e:
-            print(f"Erro ao decodificar JSON gerado pela IA. Retorno cru: {raw} | Erro: {e}")
+            logger.warning("Erro ao decodificar JSON gerado pela IA: %s", e)
             content = _fallback_conteudo(materia, tema, f"JSON Inválido: {e}")
             is_fallback = True
     else:
@@ -300,8 +305,8 @@ Retorne ESTRITAMENTE o formato JSON a seguir:
 
     # Fallback no caso da IA falhar na correção
     return {
-        "correto": True,
-        "feedback": "Tudo certo! Continue focado e vamos em frente."
+        "correto": False,
+        "feedback": "A correção automática está instável agora. Releia a teoria e tente responder de novo em 1-2 frases."
     }
 
 def classificar_erro(resposta_correta: str, resposta_usuario: str) -> str:
@@ -336,13 +341,28 @@ def talvez_gerar_avaliacao_invisivel(
 
 
 def gerar_estrutura_tema(tema: str) -> list[dict]:
+    cached = get_cached_topic_structure(tema)
+    if cached:
+        return cached
+
+    tema_norm = (tema or "").lower()
+    complexidade_alta = any(k in tema_norm for k in ["exponencial", "logaritmo", "trigonom", "deriv", "integr"])
+    complexidade_baixa = any(k in tema_norm for k in ["funcao afim", "primeiro grau", "porcentagem", "regra de tres"])
+    if complexidade_alta:
+        qtd_sugerida = 7
+    elif complexidade_baixa:
+        qtd_sugerida = 4
+    else:
+        qtd_sugerida = 5
+
     prompt = f"""
 Sua tarefa é dividir o tema principal em subtemas.
 
 Tema: {tema}
 
 Regras ABSOLUTAS:
-1. Você DEVE quebrar o tema em NO MÁXIMO 5 ou 6 itens no total.
+1. Você DEVE quebrar o tema em uma quantidade adequada à complexidade.
+   Quantidade sugerida para este tema: {qtd_sugerida} subtemas.
 2. Seja EXTREMAMENTE conciso. Divida apenas o conteúdo principal e a progressão deve preparar para prova.
 3. DIRETO AO PONTO: Assuma que o aluno já tem a base. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial genérica (Ex: se o tema for Equação Quadrática, não ensine plano cartesiano). Comece direto no assunto da Equação Quadrática.
 4. NÍVEL DE ENSINO MÉDIO: NÃO gere tópicos de aprofundamento acadêmico além do necessário. A progressão deve focar estritamente em resolver a prova.
@@ -370,22 +390,37 @@ Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
         try:
             parsed = json.loads(raw)
             if isinstance(parsed, dict) and "subtemas" in parsed:
-                return parsed["subtemas"]
+                subtemas = parsed["subtemas"]
+                if isinstance(subtemas, list):
+                    subtemas = [s for s in subtemas if isinstance(s, dict) and s.get("nome")]
+                    if subtemas:
+                        limite = max(3, min(8, qtd_sugerida + 1))
+                        subtemas = subtemas[:limite]
+                        set_cached_topic_structure(tema, subtemas)
+                        return subtemas
         except json.JSONDecodeError:
             pass
 
-    # Fallback determinístico caso a IA falhe
-    return [
-        {
-            "nome": f"{tema} (Fundamentos)",
-            "foco_delimitado": "Apenas conceitos introdutórios e definições básicas."
-        },
-        {
-            "nome": f"{tema} (Aprofundamento)",
-            "foco_delimitado": "Foco em regras mais avançadas, fórmulas ou estruturas complexas."
-        },
-        {
-            "nome": f"{tema} (Aplicações)",
-            "foco_delimitado": "Exclusivo para casos de uso e exemplos práticos reais do dia a dia."
-        }
+    # Fallback determinístico porém variável por complexidade
+    base = [
+        {"nome": f"{tema} (Conceito central)", "foco_delimitado": "Definição, leitura e ideia principal."},
+        {"nome": f"{tema} (Representação)", "foco_delimitado": "Como representar e interpretar no formato de prova."},
+        {"nome": f"{tema} (Resolução)", "foco_delimitado": "Técnica de resolução passo a passo."},
+        {"nome": f"{tema} (Questões típicas)", "foco_delimitado": "Padrões de questões mais cobrados."},
+        {"nome": f"{tema} (Erros comuns)", "foco_delimitado": "Armadilhas e erros frequentes para evitar."},
+        {"nome": f"{tema} (Aplicações)", "foco_delimitado": "Aplicação em situações concretas."},
+        {"nome": f"{tema} (Revisão estratégica)", "foco_delimitado": "Resumo final orientado para prova."},
     ]
+    fallback = base[:qtd_sugerida]
+    set_cached_topic_structure(tema, fallback)
+    return fallback
+
+
+def recomendar_proximo_passo(taxa_acerto: float, erros_recorrentes: int) -> str:
+    if taxa_acerto < 0.6:
+        return "reforco"
+    if erros_recorrentes >= 2:
+        return "revisao-ativa"
+    if taxa_acerto >= 0.85:
+        return "simulado-curto"
+    return "avanco-controlado"
