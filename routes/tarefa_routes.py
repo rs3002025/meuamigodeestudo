@@ -1,10 +1,17 @@
 from flask import Blueprint, jsonify, request
 
-from services.db import get_user_metrics, atualizar_dias_sem_estudar
-from services.ia_service import classificar_erro, talvez_gerar_avaliacao_invisivel
+from services.db import (
+    get_user_metrics,
+    atualizar_dias_sem_estudar,
+    add_error_notebook_entry,
+    get_error_notebook,
+    log_telemetry,
+)
+from services.ia_service import classificar_erro, talvez_gerar_avaliacao_invisivel, recomendar_proximo_passo
 from services.node_service import gerar_mensagem_diaria
 from services.plano_service import ajustar_plano_com_desempenho, buscar_plano
-from services.tarefa_service import buscar_tarefas_do_dia, concluir_tarefa, gerar_tarefas_diarias
+from services.tarefa_service import buscar_tarefas_do_dia, concluir_tarefa, gerar_tarefas_diarias, gerar_simulado
+from services.validation import parse_float, parse_int
 
 tarefa_bp = Blueprint("tarefas", __name__)
 
@@ -75,6 +82,7 @@ def avaliar_resposta_usuario(user_id: str):
 
     from services.ia_service import avaliar_resposta_exercicio
     resultado = avaliar_resposta_exercicio(tema, enunciado, resposta)
+    log_telemetry(user_id, "resposta_avaliada", {"tema": tema, "correto": resultado.get("correto")})
     return jsonify(resultado), 200
 
 @tarefa_bp.post("/<user_id>/concluir")
@@ -91,13 +99,25 @@ def concluir(user_id: str):
 @tarefa_bp.post("/<user_id>/desempenho")
 def desempenho(user_id: str):
     body = request.get_json(silent=True) or {}
-    taxa_acerto = float(body.get("taxaAcerto", 0))
+    taxa_acerto, erro_taxa = parse_float(body.get("taxaAcerto"), 0.0)
+    if erro_taxa:
+        return jsonify({"erro": "taxaAcerto inválida."}), 400
     erros = body.get("erros", [])
 
     erros_classificados = []
     for erro in erros:
         classe = classificar_erro(erro.get("respostaCorreta", ""), erro.get("respostaUsuario", ""))
-        erros_classificados.append({**erro, "classe": classe})
+        erro_item = {**erro, "classe": classe}
+        erros_classificados.append(erro_item)
+        add_error_notebook_entry(
+            user_id,
+            {
+                "tema": erro.get("tema", "geral"),
+                "materia": erro.get("materia", "Geral"),
+                "classe": classe,
+                "timestamp": erro.get("timestamp"),
+            },
+        )
 
     recorrentes = len([erro for erro in erros_classificados if erro["classe"] == "conteudo"])
     plano_atualizado = ajustar_plano_com_desempenho(
@@ -109,10 +129,32 @@ def desempenho(user_id: str):
         return jsonify({"erro": "Plano não encontrado."}), 404
 
     metrics = get_user_metrics(user_id)
+    proximo_passo = recomendar_proximo_passo(taxa_acerto, recorrentes)
+    log_telemetry(user_id, "desempenho_registrado", {"taxaAcerto": taxa_acerto, "recorrentes": recorrentes})
     return jsonify(
         {
             "planoAtualizado": plano_atualizado,
             "errosClassificados": erros_classificados,
-            "resumo": {"taxaAcerto": taxa_acerto, "streak": metrics.get("dias_consecutivos", 0)},
+            "resumo": {
+                "taxaAcerto": taxa_acerto,
+                "streak": metrics.get("dias_consecutivos", 0),
+                "proximoPasso": proximo_passo,
+            },
         }
     )
+
+
+@tarefa_bp.get("/<user_id>/error-notebook")
+def error_notebook(user_id: str):
+    return jsonify({"itens": get_error_notebook(user_id)})
+
+
+@tarefa_bp.post("/<user_id>/simulado")
+def simulado(user_id: str):
+    body = request.get_json(silent=True) or {}
+    tema = body.get("tema", "revisao geral")
+    quantidade, erro_qtd = parse_int(body.get("quantidade"), 10)
+    if erro_qtd or quantidade is None:
+        return jsonify({"erro": "quantidade inválida"}), 400
+    quantidade = min(max(3, quantidade), 30)
+    return jsonify({"simulado": gerar_simulado(user_id, tema, quantidade)}), 201
