@@ -24,12 +24,17 @@ MVP backend/frontend da plataforma de estudos com IA focada em **zero decisão**
 - `GET /api/tarefas/<user_id>/hoje`
 - `POST /api/tarefas/<user_id>/concluir`
 - `POST /api/tarefas/<user_id>/desempenho`
+- `GET /api/tarefas/<user_id>/error-notebook`
+- `POST /api/tarefas/<user_id>/simulado`
+- `POST /api/plano/<user_id>/deadline`
 - `GET /api/avaliacao/<user_id>/surpresa`
 
 ## IA e otimização
 - Cache de conteúdo por `user + matéria + tema`
-- Limite free: 3 gerações de conteúdo por dia
+- Em fase de implementação/testes, sem limitação diária de gerações para acelerar validação
 - Se não houver chave de IA ou houver erro de rede, usa fallback local sem quebrar o fluxo
+- Revisão espaçada automática baseada em erro-notebook
+- Telemetria de eventos para evolução de produto
 
 ## Rodar local
 ```bash

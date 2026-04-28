@@ -1,10 +1,22 @@
 import sympy as sp
 import numpy as np
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 def gerar_pontos_funcao(funcao: str):
     try:
+        if len((funcao or "").strip()) > 120:
+            return [], []
         # Prepara a string da função
-        expr_str = funcao.lower().replace("y=", "").replace("^", "**")
+        expr_str = re.sub(r"^\s*y\s*=\s*", "", funcao.lower()).replace("^", "**")
+        expr_str = expr_str.replace("$$", "").replace("$", "").strip()
+
+        # Evita gráficos inválidos com parâmetros simbólicos (a, b, etc.) sem valor numérico
+        simbolos_invalidos = re.findall(r"[a-wyz]", expr_str)
+        if simbolos_invalidos:
+            return [], []
 
         # Usa sympy para fazer parse seguro da expressão matemática e avaliar para os valores de x
         x_sym = sp.Symbol('x')
@@ -23,7 +35,7 @@ def gerar_pontos_funcao(funcao: str):
         return [float(x) for x in x_vals], y_vals
 
     except Exception as e:
-        print("Erro função:", e)
+        logger.warning("Erro função: %s", e)
         return [], []
 
 def processar_visual(visual: dict):
@@ -35,8 +47,12 @@ def processar_visual(visual: dict):
     funcao_str = visual.get("funcao") or visual.get("dados", {}).get("funcao")
     if funcao_str:
         x, y = gerar_pontos_funcao(funcao_str)
-        # Cria ou recria o 'dados' com as arrays que o frontend precisa
-        visual["dados"] = {"x": x, "y": y}
+        if x and y:
+            # Cria ou recria o 'dados' com as arrays que o frontend precisa
+            visual["dados"] = {"x": x, "y": y}
+        else:
+            # Fallback para casos conceituais (ex: y = ax + b)
+            visual["tipo"] = "diagrama"
 
     return visual
 

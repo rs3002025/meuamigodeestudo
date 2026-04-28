@@ -1,8 +1,13 @@
 import json
 from datetime import datetime, timezone
 
-from services.db import registrar_estudo, get_db_connection
-from services.ia_service import gerar_conteudo
+from services.db import (
+    registrar_estudo,
+    get_db_connection,
+    log_telemetry,
+    get_error_notebook,
+)
+from services.ia_service import gerar_conteudo, gerar_questoes
 from services.node_service import feedback_conclusao
 
 def _hoje() -> str:
@@ -63,6 +68,24 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
             }
         )
 
+    notebook = get_error_notebook(user_id)
+    revisoes = [e for e in notebook if e.get("classe") in {"conteudo", "interpretacao"}][-3:]
+    for i, err in enumerate(revisoes, start=len(tarefas) + 1):
+        tema = err.get("tema") or "revisao geral"
+        tarefas.append(
+            {
+                "id": f"{hoje}-{i}",
+                "ordem": i,
+                "tipo": "revisao_espacada",
+                "materia": err.get("materia", "Geral"),
+                "tema": tema,
+                "descricao": f"Revisão espaçada: {tema}",
+                "conteudo": gerar_conteudo(err.get("materia", "Geral"), tema),
+                "status": "pendente",
+                "podePular": False,
+            }
+        )
+
     # Avançar progresso na trilha do plano
     novo_progresso = progresso_trilha + len(etapas_dinamicas)
     plano["progresso_trilha"] = novo_progresso
@@ -83,6 +106,7 @@ def gerar_tarefas_diarias(user_id: str, plano: dict) -> list[dict]:
 
             conn.commit()
 
+    log_telemetry(user_id, "tarefas_geradas", {"quantidade": len(tarefas), "data": hoje})
     return tarefas
 
 def buscar_tarefas_do_dia(user_id: str, data: str | None = None) -> list[dict]:
@@ -118,9 +142,25 @@ def concluir_tarefa(user_id: str, task_id: str, data: str | None = None) -> tupl
 
     metricas = registrar_estudo(user_id)
     feedback = feedback_conclusao(tarefas[idx]["ordem"], len(tarefas))
+    log_telemetry(
+        user_id,
+        "tarefa_concluida",
+        {"taskId": task_id, "ordem": tarefas[idx]["ordem"], "data": hoje},
+    )
 
     return {
         "tarefas": tarefas,
         "feedback": feedback,
         "diasConsecutivos": metricas["dias_consecutivos"],
     }, 200
+
+
+def gerar_simulado(user_id: str, tema: str, quantidade: int = 10) -> dict:
+    questoes = gerar_questoes(tema=tema, quantidade=quantidade)
+    log_telemetry(user_id, "simulado_gerado", {"tema": tema, "quantidade": quantidade})
+    return {
+        "tipo": "simulado-cronometrado",
+        "tema": tema,
+        "duracaoMin": max(15, quantidade * 2),
+        "questoes": questoes,
+    }
