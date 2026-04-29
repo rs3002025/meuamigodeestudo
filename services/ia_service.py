@@ -159,6 +159,9 @@ def _extrair_funcoes_para_visuais(texto: str) -> list[str]:
     validos: list[str] = []
     for c in candidatos:
         fn = c.strip().replace("**", "^")
+        fn = re.sub(r"[^0-9a-zA-Z\s\^\*\+\-\/=().,]", "", fn)
+        fn = re.sub(r"\s+(para|onde|com|pois|porque)\b.*$", "", fn, flags=re.IGNORECASE)
+        fn = fn.strip()
         if len(fn) <= 80 and any(ch in fn.lower() for ch in ["x", "sin", "cos", "tan", "log", "exp"]):
             if fn not in validos:
                 validos.append(fn)
@@ -176,6 +179,13 @@ def _injetar_visuais_automaticos(content: dict, tema: str) -> dict:
             textos_base.append(bloco.get("conteudo", ""))
 
     funcoes: list[str] = []
+    funcoes_existentes: set[str] = set()
+    for bloco in blocos:
+        if bloco.get("tipo") == "visual":
+            visual = bloco.get("visual") or {}
+            fn = (visual.get("funcao") or "").strip().lower()
+            if fn:
+                funcoes_existentes.add(fn)
     for txt in textos_base:
         for fn in _extrair_funcoes_para_visuais(txt):
             if fn not in funcoes:
@@ -190,6 +200,10 @@ def _injetar_visuais_automaticos(content: dict, tema: str) -> dict:
     if not funcoes:
         return content
 
+    novas_funcoes = [fn for fn in funcoes[:2] if fn.strip().lower() not in funcoes_existentes]
+    if not novas_funcoes:
+        return content
+
     visuais = [
         {
             "tipo": "visual",
@@ -199,12 +213,22 @@ def _injetar_visuais_automaticos(content: dict, tema: str) -> dict:
                 "funcao": fn,
             },
         }
-        for fn in funcoes[:2]
+        for fn in novas_funcoes
     ]
 
+    # Insere os visuais próximo do conceito + exemplo (e não no fim repetidamente)
     pos_explicacao = next((i for i, b in enumerate(blocos) if b.get("tipo") == "explicacao"), 0)
-    for offset, vb in enumerate(visuais, start=1):
-        blocos.insert(pos_explicacao + offset, vb)
+    pos_exemplo = next((i for i, b in enumerate(blocos) if b.get("tipo") == "exemplo"), None)
+
+    if pos_exemplo is not None and pos_exemplo > pos_explicacao:
+        # 1º visual após explicação, 2º antes do exemplo
+        blocos.insert(pos_explicacao + 1, visuais[0])
+        if len(visuais) > 1:
+            pos_exemplo = next((i for i, b in enumerate(blocos) if b.get("tipo") == "exemplo"), pos_exemplo)
+            blocos.insert(pos_exemplo, visuais[1])
+    else:
+        for offset, vb in enumerate(visuais, start=1):
+            blocos.insert(pos_explicacao + offset, vb)
     content["blocos"] = blocos
     return content
 
