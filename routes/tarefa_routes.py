@@ -6,6 +6,7 @@ from services.db import (
     add_error_notebook_entry,
     get_error_notebook,
     log_telemetry,
+    save_lesson_block_feedback,
 )
 from services.ia_service import classificar_erro, talvez_gerar_avaliacao_invisivel, recomendar_proximo_passo
 from services.node_service import gerar_mensagem_diaria
@@ -158,3 +159,25 @@ def simulado(user_id: str):
         return jsonify({"erro": "quantidade inválida"}), 400
     quantidade = min(max(3, quantidade), 30)
     return jsonify({"simulado": gerar_simulado(user_id, tema, quantidade)}), 201
+
+
+@tarefa_bp.post("/<user_id>/aula/feedback-bloco")
+def feedback_bloco(user_id: str):
+    body = request.get_json(silent=True) or {}
+    rating = body.get("rating")
+    bloco_tipo = body.get("blocoTipo")
+    task_id = body.get("taskId")
+    comentario = body.get("comentario")
+
+    if bloco_tipo not in {"explicacao", "visual", "exemplo", "exercicios", "exercicio"}:
+        return jsonify({"erro": "blocoTipo inválido"}), 400
+    try:
+        rating_int = int(rating)
+    except (TypeError, ValueError):
+        return jsonify({"erro": "rating inválido"}), 400
+    if rating_int < 1 or rating_int > 5:
+        return jsonify({"erro": "rating deve estar entre 1 e 5"}), 400
+
+    save_lesson_block_feedback(user_id, task_id, bloco_tipo, rating_int, comentario)
+    log_telemetry(user_id, "feedback_bloco", {"blocoTipo": bloco_tipo, "rating": rating_int})
+    return jsonify({"ok": True}), 201

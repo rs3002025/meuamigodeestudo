@@ -812,6 +812,13 @@
           return { card, content };
       }
 
+      function getVisualTitle(blocoVisual) {
+          const desc = (blocoVisual?.descricao || '').toLowerCase();
+          if (desc.includes('apoio') || desc.includes('interpretar')) return 'Mapa Visual da Aula';
+          if (desc.includes('compar')) return 'Comparação Visual';
+          return 'Visual Essencial';
+      }
+
       async function renderLessonFlow() {
           const task = state.lessonActive;
           const blocos = task.conteudo.blocos || [];
@@ -856,7 +863,7 @@
              await renderMarkdown(content, bloco.conteudo);
           }
           else if (bloco.tipo === 'visual' && bloco.visual && bloco.visual.tipo !== 'nenhum') {
-             const { card, content } = createLessonBlockHTML('Visualizando', '📊');
+             const { card, content } = createLessonBlockHTML(getVisualTitle(bloco.visual), '📊');
              const vDiv = document.createElement('div');
              vDiv.className = 'visual-container';
 
