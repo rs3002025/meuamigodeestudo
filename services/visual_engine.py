@@ -27,6 +27,7 @@ def gerar_pontos_funcao(funcao: str):
         expr_str = re.sub(r"(?<=\d)\s*(?=[a-z(])", "*", expr_str)   # 4x -> 4*x
         expr_str = re.sub(r"(?<=[a-z)])\s*(?=\d)", "*", expr_str)   # x2 -> x*2
         expr_str = re.sub(r"(?<=[a-z)])\s*(?=\()", "*", expr_str)   # x(x+1) -> x*(x+1)
+        expr_str = re.sub(r"(?<=\))\s*(?=[a-z])", "*", expr_str)    # (x+1)x -> (x+1)*x
 
         # Evita gráficos inválidos com parâmetros simbólicos (a, b, etc.) sem valor numérico
         simbolos_invalidos = re.findall(r"[a-wyz]", expr_str)
@@ -44,7 +45,10 @@ def gerar_pontos_funcao(funcao: str):
         for x_val in x_vals:
             # Avalia a expressão para o valor de x atual
             y = expr.evalf(subs={x_sym: x_val})
-            y_vals.append(round(float(y), 2))
+            y_float = float(y)
+            if not np.isfinite(y_float):
+                return [], []
+            y_vals.append(round(y_float, 2))
 
         # Precisamos retornar como list() para que a serialização JSONB do db.py não quebre
         return [round(float(x), 2) for x in x_vals], y_vals
