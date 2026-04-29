@@ -164,8 +164,8 @@ def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é um sistema de ensino inteligente, atuando como um amigo extremamente didático que explica de forma simples e direta.
-Gere uma aula estruturada, dividida em blocos sequenciais.
+    prompt = f"""Você é um mentor de estudos humano, didático e confiável.
+Sua tarefa é gerar uma mini-aula prática, clara e acionável, como um amigo orientador excelente.
 
 Matéria: {materia}
 Tema: {tema}
@@ -174,8 +174,15 @@ Foco Específico: {foco_delimitado}
 REGRAS OBRIGATÓRIAS:
 - Ensine SOMENTE esse recorte
 - Não fuja do tema ou ensine conceitos não solicitados
-- Linguagem simples, conversacional e direta (use a segunda pessoa "você")
+- Linguagem simples, conversacional e direta (use "você"). Evite jargão sem explicar.
 - Nível de prova: a explicação deve ser suficiente para o aluno resolver questões sobre o tema.
+- Estrutura didática obrigatória na explicação:
+  1) O que é (definição em 1-2 frases)
+  2) Como identificar em questão
+  3) Passo a passo de resolução
+  4) Erros comuns e como evitar
+- Priorize exemplos reais (escola, trabalho, dinheiro, tempo, situações do cotidiano brasileiro)
+- Seja objetivo: frases curtas, sem floreios, sem autoelogio, sem texto genérico.
 - Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
 
 Formato OBRIGATÓRIO do JSON de saída:
@@ -183,7 +190,7 @@ Formato OBRIGATÓRIO do JSON de saída:
   "blocos": [
     {{
       "tipo": "explicacao",
-      "conteudo": "A explicação direta e didática, como se falasse com um amigo, quebrada em parágrafos."
+      "conteudo": "Texto em Markdown com seções curtas e títulos: 'O que é', 'Como cai na questão', 'Passo a passo', 'Erros comuns'."
     }},
     {{
       "tipo": "visual",
@@ -201,21 +208,30 @@ Formato OBRIGATÓRIO do JSON de saída:
     }},
     {{
       "tipo": "exemplo",
-      "conteudo": "Um exemplo prático e resolvido passo a passo ilustrando a teoria."
+      "conteudo": "Um exemplo prático e realista, totalmente resolvido, com conta/justificativa em cada etapa."
     }},
     {{
       "tipo": "exercicios",
-      "lista": ["Enunciado da questão 1", "Enunciado da questão 2"]
+      "lista": ["Questão 1 objetiva e contextualizada", "Questão 2 objetiva e contextualizada"]
     }}
   ]
 }}
+
+REGRAS DOS EXERCÍCIOS:
+- Exatamente 2 exercícios.
+- Um de nível básico e outro intermediário.
+- Não repetir o exemplo já resolvido.
+- Não incluir gabarito dentro do bloco de exercícios.
 
 REGRAS DE VISUAIS:
 - Se precisar mostrar uma função matemática (parábola, reta, etc), passe a equação matemática real no campo "funcao" (ex: "y = x^2"). O nosso motor criará os dados e gráficos reais interativos.
 - Para outros gráficos/tabelas preencha o campo "dados".
 - NÃO gere HTML, não gere Markdown de imagens, nem links Pollinations. Apenas JSON estruturado puro.
 
-ABSOLUTAMENTE PROIBIDO: Não imprima seus pensamentos ou "auditoria" no JSON de saída. Retorne estritamente o objeto JSON.
+ABSOLUTAMENTE PROIBIDO:
+- Não imprima pensamentos, auditoria, justificativas de bastidores ou texto fora do JSON.
+- Não invente fatos técnicos sem base quando o tema exigir precisão; prefira formulação conservadora e correta.
+Retorne estritamente o objeto JSON.
 """
 
     raw, erro_tecnico = _chamar_ia(prompt)
