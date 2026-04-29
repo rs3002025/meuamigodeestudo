@@ -13,6 +13,8 @@ from services.db import (
     get_cached_topic_structure,
     set_cached_topic_structure,
 )
+from services.lesson_reviewer import revisar_aula
+from services.quality_guard import avaliar_qualidade_aula
 
 logger = logging.getLogger(__name__)
 
@@ -149,9 +151,67 @@ def gerar_mensagem_amigo(tema: str) -> str:
     ]
     return random.choice(mensagens)
 
+
+def _extrair_funcoes_para_visuais(texto: str) -> list[str]:
+    if not texto:
+        return []
+    candidatos = re.findall(r"y\s*=\s*[^\n,;]+", texto, flags=re.IGNORECASE)
+    validos: list[str] = []
+    for c in candidatos:
+        fn = c.strip().replace("**", "^")
+        if len(fn) <= 80 and any(ch in fn.lower() for ch in ["x", "sin", "cos", "tan", "log", "exp"]):
+            if fn not in validos:
+                validos.append(fn)
+    return validos[:2]
+
+
+def _injetar_visuais_automaticos(content: dict, tema: str) -> dict:
+    blocos = content.get("blocos", [])
+    if not blocos:
+        return content
+
+    textos_base = []
+    for bloco in blocos:
+        if bloco.get("tipo") in {"explicacao", "exemplo"}:
+            textos_base.append(bloco.get("conteudo", ""))
+
+    funcoes: list[str] = []
+    for txt in textos_base:
+        for fn in _extrair_funcoes_para_visuais(txt):
+            if fn not in funcoes:
+                funcoes.append(fn)
+
+    if not funcoes:
+        if "seno" in tema.lower() or "cosseno" in tema.lower() or "trigonom" in tema.lower():
+            funcoes = ["y = sin(x)"]
+        elif "parábola" in tema.lower() or "quadrática" in tema.lower() or "2 grau" in tema.lower():
+            funcoes = ["y = x^2"]
+
+    if not funcoes:
+        return content
+
+    visuais = [
+        {
+            "tipo": "visual",
+            "visual": {
+                "tipo": "grafico",
+                "descricao": f"Gráfico de apoio para interpretar {tema} de forma visual e objetiva.",
+                "funcao": fn,
+            },
+        }
+        for fn in funcoes[:2]
+    ]
+
+    pos_explicacao = next((i for i, b in enumerate(blocos) if b.get("tipo") == "explicacao"), 0)
+    for offset, vb in enumerate(visuais, start=1):
+        blocos.insert(pos_explicacao + offset, vb)
+    content["blocos"] = blocos
+    return content
+
 def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     cached = get_cached_content(materia, tema, foco_delimitado)
     if cached:
+        cached = _injetar_visuais_automaticos(cached, tema)
         # Prependa a mensagem amigável no início da explicação para não quebrar o frontend
         mensagem = gerar_mensagem_amigo(tema)
         blocos = cached.get("blocos", [])
@@ -159,7 +219,8 @@ def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
             conteudo_atual = blocos[0].get("conteudo", "")
             if f"**{mensagem}**" not in conteudo_atual:
                 blocos[0]["conteudo"] = f"**{mensagem}**\n\n{conteudo_atual}"
-        return {**cached, "cache": True}
+        quality = avaliar_qualidade_aula(cached)
+        return {**cached, "cache": True, "quality": quality, "prompt_version": "v2-mentor"}
 
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
@@ -260,6 +321,8 @@ Retorne estritamente o objeto JSON.
     # IMPORTANTE: Nunca cacheie o fallback, senão o assunto ficará permanentemente inacessível mesmo após o erro resolver.
     if not is_fallback:
         content = limpar_unicode_invalido(content)
+        content = _injetar_visuais_automaticos(content, tema)
+        content = revisar_aula(content)
         set_cached_content(materia, tema, foco_delimitado, content)
 
     mensagem = gerar_mensagem_amigo(tema)
@@ -272,7 +335,12 @@ Retorne estritamente o objeto JSON.
     else:
         blocos.insert(0, {"tipo": "explicacao", "conteudo": f"**{mensagem}**"})
 
-    return {**content, "cache": False}
+    quality = avaliar_qualidade_aula(content)
+    if not quality["aprovado"]:
+        content = revisar_aula(content)
+        quality = avaliar_qualidade_aula(content)
+
+    return {**content, "cache": False, "quality": quality, "prompt_version": "v2-mentor"}
 
 
 def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:

@@ -112,6 +112,17 @@ def init_db():
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS lesson_block_feedback (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id VARCHAR(255) NOT NULL,
+                    task_id VARCHAR(255),
+                    bloco_tipo VARCHAR(50),
+                    rating SMALLINT NOT NULL,
+                    comentario TEXT,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            """)
         conn.commit()
 
 # Initialize DB on import
@@ -292,3 +303,22 @@ def log_telemetry(user_id: str | None, event_name: str, payload: dict[str, Any] 
                 conn.commit()
     except Exception as exc:
         logger.warning("Falha ao registrar telemetria: %s", exc)
+
+
+def save_lesson_block_feedback(
+    user_id: str,
+    task_id: str | None,
+    bloco_tipo: str,
+    rating: int,
+    comentario: str | None = None,
+) -> None:
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO lesson_block_feedback (user_id, task_id, bloco_tipo, rating, comentario)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (user_id, task_id, bloco_tipo, rating, comentario),
+            )
+            conn.commit()
