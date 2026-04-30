@@ -79,6 +79,22 @@ def tarefas_hoje(user_id: str):
     return jsonify({"mensagem": mensagem, "tarefas": tarefas, "streak": metrics.get("dias_consecutivos", 0), "user_status": user_status})
 
 
+@tarefa_bp.post("/<user_id>/tutor-interativo")
+def tutor_interativo(user_id: str):
+    body = request.get_json(silent=True) or {}
+    pergunta = body.get("pergunta")
+    contexto = body.get("contexto")
+    tema = body.get("tema")
+
+    if not pergunta:
+        return jsonify({"erro": "A pergunta é obrigatória."}), 400
+
+    from services.ia_service import acionar_tutor_socratico
+    resposta_tutor = acionar_tutor_socratico(tema, contexto, pergunta)
+
+    log_telemetry(user_id, "uso_tutor", {"tema": tema})
+    return jsonify({"resposta": resposta_tutor}), 200
+
 @tarefa_bp.post("/<user_id>/avaliar-resposta")
 def avaliar_resposta_usuario(user_id: str):
     body = request.get_json(silent=True) or {}
@@ -91,10 +107,19 @@ def avaliar_resposta_usuario(user_id: str):
 
     from services.ia_service import avaliar_resposta_exercicio
     from services.db import update_user_gamification
+    import datetime
+
     resultado = avaliar_resposta_exercicio(tema, enunciado, resposta)
 
     if resultado.get("correto"):
         update_user_gamification(user_id, 15)
+    else:
+        # Registra erro notebook
+        add_error_notebook_entry(user_id, {
+            "tema": tema,
+            "enunciado": enunciado,
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+        })
 
     log_telemetry(user_id, "resposta_avaliada", {"tema": tema, "correto": resultado.get("correto")})
     return jsonify(resultado), 200

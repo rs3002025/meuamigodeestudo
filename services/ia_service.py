@@ -168,74 +168,9 @@ def _extrair_funcoes_para_visuais(texto: str) -> list[str]:
     return validos[:2]
 
 
-def _injetar_visuais_automaticos(content: dict, tema: str) -> dict:
-    blocos = content.get("blocos", [])
-    if not blocos:
-        return content
-
-    textos_base = []
-    for bloco in blocos:
-        if bloco.get("tipo") in {"explicacao", "exemplo"}:
-            textos_base.append(bloco.get("conteudo", ""))
-
-    funcoes: list[str] = []
-    funcoes_existentes: set[str] = set()
-    for bloco in blocos:
-        if bloco.get("tipo") == "visual":
-            visual = bloco.get("visual") or {}
-            fn = (visual.get("funcao") or "").strip().lower()
-            if fn:
-                funcoes_existentes.add(fn)
-    for txt in textos_base:
-        for fn in _extrair_funcoes_para_visuais(txt):
-            if fn not in funcoes:
-                funcoes.append(fn)
-
-    if not funcoes:
-        if "seno" in tema.lower() or "cosseno" in tema.lower() or "trigonom" in tema.lower():
-            funcoes = ["y = sin(x)"]
-        elif "parábola" in tema.lower() or "quadrática" in tema.lower() or "2 grau" in tema.lower():
-            funcoes = ["y = x^2"]
-
-    if not funcoes:
-        return content
-
-    novas_funcoes = [fn for fn in funcoes[:2] if fn.strip().lower() not in funcoes_existentes]
-    if not novas_funcoes:
-        return content
-
-    visuais = [
-        {
-            "tipo": "visual",
-            "visual": {
-                "tipo": "grafico",
-                "descricao": f"Gráfico de apoio para interpretar {tema} de forma visual e objetiva.",
-                "funcao": fn,
-            },
-        }
-        for fn in novas_funcoes
-    ]
-
-    # Insere os visuais próximo do conceito + exemplo (e não no fim repetidamente)
-    pos_explicacao = next((i for i, b in enumerate(blocos) if b.get("tipo") == "explicacao"), 0)
-    pos_exemplo = next((i for i, b in enumerate(blocos) if b.get("tipo") == "exemplo"), None)
-
-    if pos_exemplo is not None and pos_exemplo > pos_explicacao:
-        # 1º visual após explicação, 2º antes do exemplo
-        blocos.insert(pos_explicacao + 1, visuais[0])
-        if len(visuais) > 1:
-            pos_exemplo = next((i for i, b in enumerate(blocos) if b.get("tipo") == "exemplo"), pos_exemplo)
-            blocos.insert(pos_exemplo, visuais[1])
-    else:
-        for offset, vb in enumerate(visuais, start=1):
-            blocos.insert(pos_explicacao + offset, vb)
-    content["blocos"] = blocos
-    return content
-
 def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     cached = get_cached_content(materia, tema, foco_delimitado)
     if cached:
-        cached = _injetar_visuais_automaticos(cached, tema)
         # Prependa a mensagem amigável no início da explicação para não quebrar o frontend
         mensagem = gerar_mensagem_amigo(tema)
         blocos = cached.get("blocos", [])
@@ -273,15 +208,9 @@ Formato OBRIGATÓRIO do JSON de saída (Respeite a ordem dos blocos):
     {{
       "tipo": "visual",
       "visual": {{
-        "tipo": "grafico | tabela | diagrama | nenhum",
-        "descricao": "O que este visual representa e por que ajuda",
-        "funcao": "y = x^2 - 4x + 3",
-        "dados": {{
-          "x": [-2, -1, 0, 1, 2],
-          "y": [4, 1, 0, 1, 4],
-          "labels": ["Conceito", "Definição"],
-          "valores": [["Sujeito", "Quem pratica"]]
-        }}
+        "tipo": "diagrama",
+        "descricao": "O que este mapa mental representa",
+        "codigo": "graph TD;\\n A[Início] --> B[Meio];\\n B --> C[Fim];"
       }}
     }},
     {{
@@ -296,15 +225,11 @@ Formato OBRIGATÓRIO do JSON de saída (Respeite a ordem dos blocos):
 }}
 
 REGRAS DOS EXERCÍCIOS:
-- Exatamente 2 exercícios.
-- Um de nível básico e outro intermediário.
-- Não repetir o exemplo já resolvido.
-- Não incluir gabarito dentro do bloco de exercícios.
+- Exatamente 2 exercícios práticos, diretos e sem enrolação.
+- Não incluir gabarito na pergunta.
 
 REGRAS DE VISUAIS:
-- Se precisar mostrar uma função matemática (parábola, reta, etc), passe a equação matemática real no campo "funcao" (ex: "y = x^2"). O nosso motor criará os dados e gráficos reais interativos.
-- Para outros gráficos/tabelas preencha o campo "dados".
-- NÃO gere HTML, não gere Markdown de imagens, nem links Pollinations. Apenas JSON estruturado puro.
+- Você é EXCELENTE em Mermaid.js. O campo 'codigo' do bloco visual DEVE SEMPRE conter um código Mermaid.js válido (ex: graph TD, pie, sequenceDiagram, mindmap) que ajude a explicar a intuição do assunto. Não use aspas triplas dentro do valor do JSON.
 
 ABSOLUTAMENTE PROIBIDO:
 - Não imprima pensamentos, auditoria, justificativas de bastidores ou texto fora do JSON.
@@ -372,6 +297,35 @@ def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
         for i in range(quantidade)
     ]
 
+
+def acionar_tutor_socratico(tema: str, contexto: str, pergunta: str) -> str:
+    prompt = f"""Você é o Amigo Elite, um tutor particular de elite auxiliando um aluno num painel lateral durante uma aula.
+Tema atual da aula: {tema}
+Contexto do que o aluno estava lendo: {contexto[:500]}
+Dúvida do aluno: {pergunta}
+
+REGRAS:
+1. Responda de forma direta e curta (máx 3-4 frases curtas).
+2. Não dê respostas mastigadas. Faça uma provocação inteligente ou use uma analogia inusitada para desbloquear a mente dele.
+3. Use um tom encorajador e sagaz. Fale diretamente com o aluno ("você").
+"""
+    raw, erro = _chamar_ia(prompt)
+
+    if erro:
+        return "Tutor offline no momento. Tente ler a seção novamente com calma e avance."
+
+    if raw and raw.startswith("```"):
+        raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+        raw = re.sub(r"```$", "", raw).strip()
+
+    try:
+        # Se a IA retornou JSON acidentalmente
+        if raw.startswith("{"):
+            js = json.loads(raw)
+            return js.get("resposta", raw)
+        return raw.strip()
+    except Exception:
+        return raw.strip() if raw else "Estou digerindo o conceito, pergunte novamente!"
 
 def avaliar_resposta_exercicio(tema: str, enunciado: str, resposta_usuario: str) -> dict:
     prompt = f"""Atuando como o "Amigo Elite" avaliando uma resposta durante o Micro-learning:
