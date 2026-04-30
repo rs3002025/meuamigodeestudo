@@ -68,7 +68,15 @@ def tarefas_hoje(user_id: str):
         dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
         materia_do_dia=_materia_do_dia(tarefas),
     )
-    return jsonify({"mensagem": mensagem, "tarefas": tarefas, "streak": metrics.get("dias_consecutivos", 0)})
+
+    # Adicionando status gamificado
+    user_status = {
+        "xp": metrics.get("xp", 0),
+        "level": metrics.get("level", 1),
+        "streak": metrics.get("dias_consecutivos", 0)
+    }
+
+    return jsonify({"mensagem": mensagem, "tarefas": tarefas, "streak": metrics.get("dias_consecutivos", 0), "user_status": user_status})
 
 
 @tarefa_bp.post("/<user_id>/avaliar-resposta")
@@ -82,7 +90,12 @@ def avaliar_resposta_usuario(user_id: str):
         return jsonify({"erro": "Tema, enunciado e resposta são obrigatórios."}), 400
 
     from services.ia_service import avaliar_resposta_exercicio
+    from services.db import update_user_gamification
     resultado = avaliar_resposta_exercicio(tema, enunciado, resposta)
+
+    if resultado.get("correto"):
+        update_user_gamification(user_id, 15)
+
     log_telemetry(user_id, "resposta_avaliada", {"tema": tema, "correto": resultado.get("correto")})
     return jsonify(resultado), 200
 

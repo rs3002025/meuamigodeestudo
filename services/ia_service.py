@@ -144,10 +144,10 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
 
 def gerar_mensagem_amigo(tema: str) -> str:
     mensagens = [
-        f"isso aqui em {tema} cai direto em prova, presta atenção nisso",
-        f"se tu entender essa parte de {tema}, já resolve muita questão",
-        f"essa parte de {tema} é onde a maioria erra",
-        f"isso aqui é chave pra prova, foca nisso"
+        f"Alerta tático: {tema} é o divisor de águas entre o amador e a elite. Absorva isso.",
+        f"Estratégia pura: Quem domina {tema} não perde tempo em prova. Foca no fundamento.",
+        f"Essa é a armadilha onde 90% cai. Se entender {tema} hoje, você já passou eles.",
+        f"Missão crítica: A lógica por trás de {tema} vai desbloquear os próximos 5 assuntos."
     ]
     return random.choice(mensagens)
 
@@ -249,33 +249,26 @@ def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é um mentor de estudos humano, didático e confiável.
-Sua tarefa é gerar uma mini-aula prática, clara e acionável, como um amigo orientador excelente.
+    prompt = f"""Você é o Amigo Elite, um mentor pedagógico de altíssimo nível.
+Sua tarefa é gerar uma missão Socrática de Micro-learning, focando fortemente em ancoragem emocional e analogias marcantes, antes da matemática ou regra formal.
 
 Matéria: {materia}
 Tema: {tema}
 Foco Específico: {foco_delimitado}
 
-REGRAS OBRIGATÓRIAS:
-- Ensine SOMENTE esse recorte
-- Não fuja do tema ou ensine conceitos não solicitados
-- Linguagem simples, conversacional e direta (use "você"). Evite jargão sem explicar.
-- Nível de prova: a explicação deve ser suficiente para o aluno resolver questões sobre o tema.
-- Estrutura didática obrigatória na explicação:
-  1) O que é (definição em 1-2 frases)
-  2) Como identificar em questão
-  3) Passo a passo de resolução
-  4) Erros comuns e como evitar
-- Priorize exemplos reais (escola, trabalho, dinheiro, tempo, situações do cotidiano brasileiro)
-- Seja objetivo: frases curtas, sem floreios, sem autoelogio, sem texto genérico.
+REGRAS OBRIGATÓRIAS DE DIDÁTICA SOCRÁTICA E ELITE:
+- A aula DEVE sempre começar com uma analogia visual absurda, criativa ou de alto impacto financeiro/emocional/cotidiano para ancorar o tema no cérebro.
+- Não comece com definições chatas como "X é Y". Comece com "Imagine que..."
+- A linguagem deve ser de um mentor de elite: direto, incisivo, instigante, que faz o aluno se sentir inteligente. Use sempre "você".
+- Ensine SOMENTE o recorte solicitado.
 - Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
 
-Formato OBRIGATÓRIO do JSON de saída:
+Formato OBRIGATÓRIO do JSON de saída (Respeite a ordem dos blocos):
 {{
   "blocos": [
     {{
       "tipo": "explicacao",
-      "conteudo": "Texto em Markdown com seções curtas e títulos: 'O que é', 'Como cai na questão', 'Passo a passo', 'Erros comuns'."
+      "conteudo": "1) A Analogia Elite (Crie uma âncora memorável). 2) A Regra Real (traduza a analogia para o conceito técnico em 2 frases). 3) A Armadilha Comum (o que a maioria erra)."
     }},
     {{
       "tipo": "visual",
@@ -293,11 +286,11 @@ Formato OBRIGATÓRIO do JSON de saída:
     }},
     {{
       "tipo": "exemplo",
-      "conteudo": "Um exemplo prático e realista, totalmente resolvido, com conta/justificativa em cada etapa."
+      "conteudo": "O 'Missão na Prática': um exemplo desafiador, resolvido num esquema passo a passo de raciocínio, e não apenas uma conta jogada."
     }},
     {{
       "tipo": "exercicios",
-      "lista": ["Questão 1 objetiva e contextualizada", "Questão 2 objetiva e contextualizada"]
+      "lista": ["Uma questão que exige interpretação usando a analogia criada", "Uma questão direta de cálculo/aplicação do tema"]
     }}
   ]
 }}
@@ -381,22 +374,22 @@ def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
 
 
 def avaliar_resposta_exercicio(tema: str, enunciado: str, resposta_usuario: str) -> dict:
-    prompt = f"""Atuando como um parceiro de estudos ajudando a revisar o que foi aprendido:
+    prompt = f"""Atuando como o "Amigo Elite" avaliando uma resposta durante o Micro-learning:
 Tema da Aula: {tema}
 Pergunta Feita: {enunciado}
 Resposta do Aluno: {resposta_usuario}
 
-Sua tarefa é ler a resposta e avaliar se demonstra compreensão.
+Sua tarefa é ler a resposta e avaliar a intuição e raciocínio por trás dela.
 
-REGRAS DE AVALIAÇÃO:
-1. SEJA MUITO FLEXÍVEL: Ignore completamente erros de digitação, falta de acentuação ou respostas muito curtas/informais, desde que a ideia central ou a intuição esteja minimamente correta.
-2. SÓ MARQUE COMO ERRADO (false): Se a resposta for completamente fora do contexto, assumir um conceito gravemente errado, ou disser "não sei".
-3. TOM DE AMIGO: Fale diretamente com a pessoa em SEGUNDA PESSOA ("você" ou "tu"). Aja como um amigo que está ajudando a estudar. Seja encorajador e descontraído. Se acertar a ideia, elogie de forma natural. Se errar, seja compreensivo e explique rapidamente o ponto principal de forma simples, sem parecer um professor dando bronca ou sendo formal.
+REGRAS DE AVALIAÇÃO ELITE:
+1. O FOCO É SOCRÁTICO: Ignore erros de digitação ou respostas "feias". O aluno pegou o "pulo do gato"? Ele entendeu a essência? Se sim, considere correto.
+2. FEEDBACK CURTO DE IMPACTO: Responda em no MÁXIMO 2 frases. Use tom de recompensa. Se acertou, valide o raciocínio dele de forma empolgante ("Baita sacada! Exatamente isso..."). Se errou, não dê sermão, faça ele pensar ("Quase. Mas lembra da analogia que a gente viu? O que aconteceria se...").
+3. NUNCA DEIXE A RESPOSTA PURA NO FEEDBACK SE ELE ERROU: Dê apenas uma forte pista pra ele continuar a missão.
 
 Retorne ESTRITAMENTE o formato JSON a seguir:
 {{
   "correto": true ou false,
-  "feedback": "Seu feedback super amigável, direto e conversacional, focando em incentivar ou corrigir a direção (1 ou 2 frases no máximo)."
+  "feedback": "Feedback de Elite: empolgante, recompensador se acertou, intrigante e socrático se errou. Máx 2 frases curtas."
 }}"""
 
     raw, _ = _chamar_ia(prompt)
@@ -464,26 +457,22 @@ def gerar_estrutura_tema(tema: str) -> list[dict]:
         qtd_sugerida = 5
 
     prompt = f"""
-Sua tarefa é dividir o tema principal em subtemas.
+Sua tarefa é dividir o tema principal em submissões (subtemas) para uma trilha de Micro-learning Socrático de Elite.
 
 Tema: {tema}
 
 Regras ABSOLUTAS:
-1. Você DEVE quebrar o tema em uma quantidade adequada à complexidade.
-   Quantidade sugerida para este tema: {qtd_sugerida} subtemas.
-2. Seja EXTREMAMENTE conciso. Divida apenas o conteúdo principal e a progressão deve preparar para prova.
-3. DIRETO AO PONTO: Assuma que o aluno já tem a base. É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão inicial genérica (Ex: se o tema for Equação Quadrática, não ensine plano cartesiano). Comece direto no assunto da Equação Quadrática.
-4. NÍVEL DE ENSINO MÉDIO: NÃO gere tópicos de aprofundamento acadêmico além do necessário. A progressão deve focar estritamente em resolver a prova.
-5. A progressão deve ser ágil e lógica.
-6. IMPORTANTE: No campo "nome", forneça APENAS o nome específico do subtema curto e claro.
-7. O campo "foco_delimitado" serve para restringir a IA que vai gerar o conteúdo do subtema.
+1. Você DEVE quebrar o tema na quantidade sugerida: {qtd_sugerida} submissões.
+2. Nomes impactantes: O campo "nome" deve ser curto mas instigante (Ex: "A Anatomia da Equação", e não apenas "Equação Básica").
+3. DIRETO AO PONTO: É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão genérica inicial.
+4. O campo "foco_delimitado" DEVE guiar o conteúdo a focar em 1 ou 2 conceitos-chave e instruir explicitamente qual analogia central pode ser usada lá.
 
 Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
 {{
   "subtemas": [
     {{
-      "nome": "Apenas o nome próprio e curto do subtema",
-      "foco_delimitado": "A instrução estrita do que deve ser ensinado apenas aqui, para não atropelar ou se misturar com os próximos."
+      "nome": "Nome Curto e Impactante",
+      "foco_delimitado": "Foco estrito do que ensinar + sugestão curta de analogia a usar."
     }}
   ]
 }}
