@@ -1,0 +1,32 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-04-30 13:18:35,451 INFO [werkzeug] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3000
+ * Running on http://192.168.0.2:3000
+2026-04-30 13:18:35,451 INFO [werkzeug] [33mPress CTRL+C to quit[0m
+2026-04-30 13:19:11,030 INFO [werkzeug] 127.0.0.1 - - [30/Apr/2026 13:19:11] "GET / HTTP/1.1" 200 -
+2026-04-30 13:19:12,566 ERROR [app] Exception on /api/tarefas/u-1777555152062/hoje [GET]
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/routes/tarefa_routes.py", line 60, in tarefas_hoje
+    tarefas = buscar_tarefas_do_dia(user_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/tarefa_service.py", line 116, in buscar_tarefas_do_dia
+    with get_db_connection() as conn:
+         ^^^^^^^^^^^^^^^^^^^
+  File "/app/services/db.py", line 63, in get_db_connection
+    raise RuntimeError("DATABASE_URL não configurada.")
+RuntimeError: DATABASE_URL não configurada.
+2026-04-30 13:19:12,571 INFO [werkzeug] 127.0.0.1 - - [30/Apr/2026 13:19:12] "[35m[1mGET /api/tarefas/u-1777555152062/hoje HTTP/1.1[0m" 500 -

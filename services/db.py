@@ -77,9 +77,13 @@ def init_db():
                     ultima_taxa_acerto FLOAT,
                     dias_sem_estudar INTEGER DEFAULT 0,
                     ia_geracoes_por_dia JSONB DEFAULT '{}'::jsonb,
-                    erro_notebook JSONB DEFAULT '[]'::jsonb
+                    erro_notebook JSONB DEFAULT '[]'::jsonb,
+                    xp INTEGER DEFAULT 0,
+                    level INTEGER DEFAULT 1
                 )
             """)
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1")
             # Plans table
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS plans (
@@ -145,13 +149,31 @@ def get_user_metrics(user_id: str) -> dict[str, Any]:
                 return row
 
             cur.execute(
-                "INSERT INTO users (id, ia_geracoes_por_dia) VALUES (%s, '{}'::jsonb) RETURNING *",
+                "INSERT INTO users (id, ia_geracoes_por_dia, xp, level) VALUES (%s, '{}'::jsonb, 0, 1) RETURNING *",
                 (user_id,)
             )
             conn.commit()
             row = cur.fetchone()
             row["erro_notebook"] = row.get("erro_notebook") or []
             return row
+
+def update_user_gamification(user_id: str, xp_gained: int) -> dict[str, Any]:
+    metrics = get_user_metrics(user_id)
+    new_xp = (metrics.get("xp") or 0) + xp_gained
+    new_level = metrics.get("level") or 1
+
+    # 100 XP per level scaling simple mechanism
+    if new_xp >= new_level * 100:
+        new_level += 1
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET xp = %s, level = %s WHERE id = %s RETURNING *",
+                (new_xp, new_level, user_id)
+            )
+            conn.commit()
+            return cur.fetchone()
 
 def registrar_estudo(user_id: str, studied_on: date | None = None) -> dict[str, Any]:
     hoje = studied_on or _hoje_utc()

@@ -140,6 +140,11 @@ def concluir_tarefa(user_id: str, task_id: str, data: str | None = None) -> tupl
             cur.execute("UPDATE tasks SET payload = %s::jsonb WHERE id = %s", (json.dumps(tarefas), task_key))
             conn.commit()
 
+    from services.db import update_user_gamification
+
+    # Extrai XP: 50 por task base
+    update_user_gamification(user_id, 50)
+
     metricas = registrar_estudo(user_id)
     feedback = feedback_conclusao(tarefas[idx]["ordem"], len(tarefas))
     log_telemetry(
@@ -152,6 +157,8 @@ def concluir_tarefa(user_id: str, task_id: str, data: str | None = None) -> tupl
         "tarefas": tarefas,
         "feedback": feedback,
         "diasConsecutivos": metricas["dias_consecutivos"],
+        "xp": metricas.get("xp", 0), # XP já foi atualizado no BD
+        "level": metricas.get("level", 1)
     }, 200
 
 

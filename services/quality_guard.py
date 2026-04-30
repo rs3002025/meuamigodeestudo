@@ -21,10 +21,11 @@ def avaliar_qualidade_aula(content: dict[str, Any]) -> dict[str, Any]:
 
     explicacao = next((b for b in blocos if b.get("tipo") == "explicacao"), {})
     texto = (explicacao.get("conteudo") or "").lower()
-    for secao in ["o que é", "passo", "erros"]:
-        if secao not in texto:
-            score -= 5
-            alertas.append(f"Explicação sem seção esperada: '{secao}'.")
+
+    # Relaxando o validador para aceitar a nova estrutura socrática que não tem mais os titulos chatos "o que é".
+    if "analogia" not in texto and "imagine" not in texto and "pense" not in texto:
+        score -= 10
+        alertas.append("Falta a Analogia Elite ou uma âncora imaginativa forte.")
 
     ex_bloco = next((b for b in blocos if b.get("tipo") in {"exercicios", "exercicio"}), {})
     lista = ex_bloco.get("lista") or ex_bloco.get("perguntas") or []
