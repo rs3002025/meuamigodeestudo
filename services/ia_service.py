@@ -263,7 +263,6 @@ Retorne estritamente o objeto JSON.
     # IMPORTANTE: Nunca cacheie o fallback, senão o assunto ficará permanentemente inacessível mesmo após o erro resolver.
     if not is_fallback:
         content = limpar_unicode_invalido(content)
-        content = _injetar_visuais_automaticos(content, tema)
         content = revisar_aula(content)
         set_cached_content(materia, tema, foco_delimitado, content)
 
