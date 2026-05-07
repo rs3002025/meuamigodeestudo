@@ -22,10 +22,11 @@ def avaliar_qualidade_aula(content: dict[str, Any]) -> dict[str, Any]:
     explicacao = next((b for b in blocos if b.get("tipo") == "explicacao"), {})
     texto = (explicacao.get("conteudo") or "").lower()
 
-    # Relaxando o validador para aceitar a nova estrutura socrática que não tem mais os titulos chatos "o que é".
-    if "analogia" not in texto and "imagine" not in texto and "pense" not in texto:
-        score -= 10
-        alertas.append("Falta a Analogia Elite ou uma âncora imaginativa forte.")
+    # Validador atualizado: permite que a explicação seja puramente lógica/matemática
+    # sem penalizar a ausência de analogias forçadas.
+    if len(texto) < 50:
+        score -= 20
+        alertas.append("O texto da explicação está muito curto ou superficial.")
 
     ex_bloco = next((b for b in blocos if b.get("tipo") in {"exercicios", "exercicio"}), {})
     lista = ex_bloco.get("lista") or ex_bloco.get("perguntas") or []

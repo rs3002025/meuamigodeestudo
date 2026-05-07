@@ -85,12 +85,13 @@ def tutor_interativo(user_id: str):
     pergunta = body.get("pergunta")
     contexto = body.get("contexto")
     tema = body.get("tema")
+    historico = body.get("historico", [])
 
     if not pergunta:
         return jsonify({"erro": "A pergunta é obrigatória."}), 400
 
     from services.ia_service import acionar_tutor_socratico
-    resposta_tutor = acionar_tutor_socratico(tema, contexto, pergunta)
+    resposta_tutor = acionar_tutor_socratico(tema, contexto, pergunta, historico)
 
     log_telemetry(user_id, "uso_tutor", {"tema": tema})
     return jsonify({"resposta": resposta_tutor}), 200
