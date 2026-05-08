@@ -22,32 +22,37 @@ def detectar_tipo():
 
 @onboarding_bp.post("/finalizar")
 def finalizar():
-    body = request.get_json(silent=True) or {}
-    plano_payload, erro = processar_onboarding(body)
+    try:
+        body = request.get_json(silent=True) or {}
+        plano_payload, erro = processar_onboarding(body)
 
-    if erro:
-        return jsonify({"erro": erro}), 400
+        if erro:
+            return jsonify({"erro": erro}), 400
 
-    plano = gerar_plano_inicial(plano_payload)
-    tarefas = gerar_tarefas_diarias(plano_payload["userId"], plano)
+        plano = gerar_plano_inicial(plano_payload)
+        tarefas = gerar_tarefas_diarias(plano_payload["userId"], plano)
 
-    metrics = get_user_metrics(plano_payload["userId"])
-    materia_do_dia = tarefas[0]["materia"] if tarefas else None
-    mensagem = gerar_mensagem_diaria(
-        taxa_acerto=float(metrics.get("ultima_taxa_acerto") or 0.7),
-        pendencias=len(tarefas),
-        dias_sem_estudar=int(metrics.get("dias_sem_estudar") or 0),
-        dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
-        materia_do_dia=materia_do_dia,
-    )
+        metrics = get_user_metrics(plano_payload["userId"])
+        materia_do_dia = tarefas[0]["materia"] if tarefas else None
+        mensagem = gerar_mensagem_diaria(
+            taxa_acerto=float(metrics.get("ultima_taxa_acerto") or 0.7),
+            pendencias=len(tarefas),
+            dias_sem_estudar=int(metrics.get("dias_sem_estudar") or 0),
+            dias_consecutivos=int(metrics.get("dias_consecutivos") or 0),
+            materia_do_dia=materia_do_dia,
+        )
 
-    onboarding_meta = {
-        "tipo": plano_payload["tipo"],
-        "modo": plano_payload["modo"],
-        "materias": plano_payload["materias"],
-    }
+        onboarding_meta = {
+            "tipo": plano_payload["tipo"],
+            "modo": plano_payload["modo"],
+            "materias": plano_payload["materias"],
+        }
 
-    if plano_payload["modo"] == "generico":
-        onboarding_meta["aviso"] = "vou montar algo genérico só pra te mostrar como funciona"
+        if plano_payload["modo"] == "generico":
+            onboarding_meta["aviso"] = "vou montar algo genérico só pra te mostrar como funciona"
 
-    return jsonify({"plano": plano, "tarefas": tarefas, "mensagem": mensagem, "onboarding": onboarding_meta}), 201
+        return jsonify({"plano": plano, "tarefas": tarefas, "mensagem": mensagem, "onboarding": onboarding_meta}), 201
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error("Erro crítico em /onboarding/finalizar", exc_info=True)
+        return jsonify({"erro": "Erro interno ao processar plano inicial. Tente novamente em alguns segundos.", "detalhes": str(e)}), 500

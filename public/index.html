@@ -28,19 +28,23 @@
       @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap");
 
       :root {
-        --bg-dark: #0f1115;
-        --bg-panel: #16181d;
-        --bg-card: #1e2028;
-        --bg-card-hover: #262933;
-        --text-main: #f1f5f9;
-        --text-muted: #94a3b8;
-        --border-color: rgba(255, 255, 255, 0.08);
-        --primary: #8b5cf6;
-        --primary-hover: #7c3aed;
-        --primary-glow: rgba(139, 92, 246, 0.4);
+        --bg-dark: #f8fafc;
+        --bg-panel: #ffffff;
+        --bg-card: #f1f5f9;
+        --bg-card-hover: #e2e8f0;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-color: rgba(0, 0, 0, 0.08);
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --primary-glow: rgba(99, 102, 241, 0.4);
         --secondary: #3b82f6;
         --success: #10b981;
         --error: #ef4444;
+
+        /* Glassmorphism effects */
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.5);
       }
 
       * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,8 +60,8 @@
 
       ::-webkit-scrollbar { width: 8px; height: 8px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
 
       /* GRID PRINCIPAL (Dashboard) */
       .app-layout {
@@ -113,7 +117,7 @@
       /* HEADER GLOBAL (Topo) */
       #header {
         grid-area: header;
-        background: rgba(15, 17, 21, 0.8);
+        background: var(--glass-bg);
         backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--border-color);
         display: flex;
@@ -146,7 +150,7 @@
       /* TUTOR PANEL (Direita) */
       #tutor-panel {
         grid-area: tutor;
-        background: var(--bg-panel);
+        background: #ffffff;
         border-left: 1px solid var(--border-color);
         display: flex;
         flex-direction: column;
@@ -221,9 +225,9 @@
 
       /* Lesson Blocks */
       .lesson-block {
-        background: var(--bg-card); border: 1px solid var(--border-color);
+        background: #ffffff; border: 1px solid var(--border-color);
         border-radius: 16px; padding: 32px; margin-bottom: 24px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
       }
       .lesson-block.explicacao { border-left: 4px solid var(--primary); }
       .lesson-block.exemplo { border-left: 4px solid var(--secondary); }
@@ -253,9 +257,10 @@
       .error-item { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 16px; border-radius: 12px; }
 
       .full-screen-loader {
-        position: fixed; inset: 0; background: var(--bg-dark); z-index: 1000;
+        position: fixed; inset: 0; background: rgba(255, 255, 255, 0.9); z-index: 1000;
         display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;
       }
+      .full-screen-loader h2 { color: var(--primary); margin-top: 24px; font-weight: 600; letter-spacing: -0.5px; }
       .spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -276,7 +281,7 @@
 
       <!-- SIDEBAR -->
       <aside id="sidebar">
-        <div class="brand">Amigo<span>Elite</span></div>
+        <div class="brand">Amigo<span> de Estudo</span></div>
         <div class="nav-menu">
           <div class="nav-item active" onclick="navigate('trilha')">📚 Trilha Atual</div>
           <div class="nav-item" onclick="navigate('lab')">🧪 Lab de Erros</div>
@@ -303,13 +308,13 @@
             <h1 style="font-size: 36px; margin-bottom: 16px;">Inicie sua Jornada Socrática</h1>
             <p style="color: var(--text-muted); font-size: 18px; margin-bottom: 40px;">Esqueça as aulas chatas. Aprenda pensando.</p>
 
-            <div id="onb-step-1" style="text-align: left; background: var(--bg-card); padding: 32px; border-radius: 20px; border: 1px solid var(--border-color);">
+            <div id="onb-step-1" style="text-align: left; background: var(--glass-bg); padding: 32px; border-radius: 20px; border: 1px solid var(--glass-border); box-shadow: 0 10px 30px rgba(0,0,0,0.05); backdrop-filter: blur(10px);">
               <label>Qual o seu objetivo principal?</label>
               <input id="in-objetivo" class="main-input" type="text" placeholder="Ex: Enem, Concurso Banco do Brasil, Matemática..." />
               <button id="btn-next-1" class="btn btn-primary" onclick="handleOnboardingStep1()">Mapear Trilha Estratégica</button>
             </div>
 
-            <div id="onb-step-2" class="hidden" style="text-align: left; background: var(--bg-card); padding: 32px; border-radius: 20px; border: 1px solid var(--border-color);">
+            <div id="onb-step-2" class="hidden" style="text-align: left; background: var(--glass-bg); padding: 32px; border-radius: 20px; border: 1px solid var(--glass-border); box-shadow: 0 10px 30px rgba(0,0,0,0.05); backdrop-filter: blur(10px);">
               <label>Quais assuntos específicos?</label>
               <textarea id="in-assuntos" class="main-textarea" rows="3" placeholder="Ex: Logaritmo, Regra de três, Crase..."></textarea>
               <div class="row">
@@ -406,7 +411,8 @@
         lessonStep: 0,
         xp: parseInt(localStorage.getItem('amigo_xp') || 0),
         level: parseInt(localStorage.getItem('amigo_level') || 1),
-        streak: parseInt(localStorage.getItem('amigo_streak') || 0)
+        streak: parseInt(localStorage.getItem('amigo_streak') || 0),
+        tutorHistory: []
       };
       localStorage.setItem('amigo_user_id', state.userId);
 
@@ -581,6 +587,7 @@
       function startLesson(task) {
         state.lessonActive = task;
         state.lessonStep = 0;
+        state.tutorHistory = [];
         $('lesson-feed').innerHTML = '';
         $('btn-concluir-missao').classList.add('hidden');
         navigate('lesson');
@@ -623,7 +630,7 @@
           blockDiv.className = `lesson-block ${bloco.tipo || 'explicacao'}`;
 
           // O Header do bloco
-          const titles = { 'explicacao': '📘 Inteligência Socrática', 'exemplo': '💡 Caso Prático Real', 'exercicio': '⚔️ Desafio Tático', 'exercicios': '⚔️ Desafio Tático', 'visual': '📊 Mapa Mental/Diagrama' };
+          const titles = { 'explicacao': '📘 Teoria', 'exemplo': '💡 Exemplo Prático', 'exercicio': '⚔️ Exercícios', 'exercicios': '⚔️ Exercícios', 'mermaid': '📊 Mapa Mental/Diagrama', 'visual': '📊 Mapa Mental/Diagrama' };
           const header = document.createElement('div');
           header.innerHTML = `<div style="font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px; font-size: 13px; letter-spacing: 1px;">${titles[bloco.tipo] || 'Módulo'}</div>`;
           blockDiv.appendChild(header);
@@ -670,9 +677,11 @@
                  }
               }
           }
-          else if (bloco.tipo === 'visual') {
+          else if (bloco.tipo === 'visual' || bloco.tipo === 'mermaid') {
               // Diagrama puro em vez de canvas falho
-              const mermaidBlock = "```mermaid\n" + (bloco.visual?.codigo || bloco.conteudo || "graph TD;\nA[Falta de Dados]-->B[Erro]") + "\n```";
+              const codeString = bloco.codigo || (bloco.visual && bloco.visual.codigo) || bloco.conteudo || "graph TD;\nA[Falta de Dados]-->B[Erro]";
+              // Garante que o cógigo não gere markdown incompleto e seja devidamente formatado para mermaid renderizar
+              const mermaidBlock = "```mermaid\n" + codeString + "\n```";
               await renderMarkdown(contentDiv, mermaidBlock);
           }
           else {
@@ -718,11 +727,13 @@
           input.value = '';
           const chat = $('tutor-chat');
 
+          // Adiciona mensagem ao histórico do estado
+          state.tutorHistory.push({ role: 'user', text: text });
+
           // Render User Msg
           chat.innerHTML += `<div class="msg-bubble msg-user">${text}</div>`;
           chat.scrollTop = chat.scrollHeight;
 
-          // Mocking tutor response for now until backend endpoint is built, to unblock UI
           // Se houver um bloco ativo, mandamos o contexto
           let contexto = "Aula Genérica";
           if (state.lessonActive && state.lessonActive.conteudo && state.lessonActive.conteudo.blocos[state.lessonStep]) {
@@ -737,17 +748,19 @@
               const payload = {
                   pergunta: text,
                   contexto: contexto,
-                  tema: state.lessonActive ? state.lessonActive.tema : "Assunto Geral"
+                  tema: state.lessonActive ? state.lessonActive.tema : "Assunto Geral",
+                  historico: state.tutorHistory.slice(-4) // Envia o histórico recente
               };
 
               const res = await post(`/api/tarefas/${state.userId}/tutor-interativo`, payload);
 
               $(loaderId).remove();
               chat.innerHTML += `<div class="msg-bubble msg-ai">${res.resposta}</div>`;
+              state.tutorHistory.push({ role: 'ai', text: res.resposta });
 
           } catch(e) {
               $(loaderId).remove();
-              chat.innerHTML += `<div class="msg-bubble msg-ai">Conexão com a IA Socrática falhou. Tente novamente!</div>`;
+              chat.innerHTML += `<div class="msg-bubble msg-ai">Conexão com a IA falhou. Tente novamente!</div>`;
           }
           chat.scrollTop = chat.scrollHeight;
       }

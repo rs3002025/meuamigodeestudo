@@ -144,10 +144,10 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
 
 def gerar_mensagem_amigo(tema: str) -> str:
     mensagens = [
-        f"Alerta tático: {tema} é o divisor de águas entre o amador e a elite. Absorva isso.",
-        f"Estratégia pura: Quem domina {tema} não perde tempo em prova. Foca no fundamento.",
-        f"Essa é a armadilha onde 90% cai. Se entender {tema} hoje, você já passou eles.",
-        f"Missão crítica: A lógica por trás de {tema} vai desbloquear os próximos 5 assuntos."
+        f"Preste atenção: {tema} costuma cair bastante em prova. Vamos entender a lógica por trás disso.",
+        f"Dica de amigo: Entender o fundamento de {tema} vai te poupar muito tempo na hora de resolver questões.",
+        f"Essa é uma armadilha clássica. Se você dominar {tema} hoje, já garante pontos preciosos.",
+        f"Vamos focar na base de {tema}, isso vai desbloquear a compreensão de vários outros assuntos."
     ]
     return random.choice(mensagens)
 
@@ -184,42 +184,39 @@ def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é o Amigo Elite, um mentor pedagógico de altíssimo nível.
-Sua tarefa é gerar uma missão Socrática de Micro-learning, focando fortemente em ancoragem emocional e analogias marcantes, antes da matemática ou regra formal.
+    prompt = f"""Você é um Mentor de Estudo Experiente.
+Sua tarefa é gerar uma aula de micro-learning focada e direta, atuando como um professor particular altamente inteligente, didático e empático, que prepara o aluno para concursos e provas difíceis.
 
 Matéria: {materia}
 Tema: {tema}
 Foco Específico: {foco_delimitado}
 
-REGRAS OBRIGATÓRIAS DE DIDÁTICA SOCRÁTICA E ELITE:
-- A aula DEVE sempre começar com uma analogia visual absurda, criativa ou de alto impacto financeiro/emocional/cotidiano para ancorar o tema no cérebro.
-- Não comece com definições chatas como "X é Y". Comece com "Imagine que..."
-- A linguagem deve ser de um mentor de elite: direto, incisivo, instigante, que faz o aluno se sentir inteligente. Use sempre "você".
-- Ensine SOMENTE o recorte solicitado.
+REGRAS OBRIGATÓRIAS:
+- Vá direto ao ponto. Explique o conceito de forma lógica, coesa e clara. Sem jargões exagerados de coach, mas seja encorajador.
+- Use analogias APENAS se elas realmente facilitarem a compreensão do aluno de forma natural. Não force analogias do cotidiano se uma explicação matemática estruturada for mais eficiente.
+- A linguagem deve ser de um amigo experiente: direto, claro e focado em resolver problemas. Use "você".
+- Ensine SOMENTE o recorte solicitado em Foco Específico.
 - Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
+- Diagramas: Se um diagrama de fluxo ou árvore ajudar a explicar (e APENAS se fizer sentido matemático/lógico), você pode adicionar blocos do tipo "mermaid". ATENÇÃO: a propriedade "codigo" do mermaid não deve conter aspas não escapadas ou parênteses que quebrem o parser JS. Faça diagramas simples como `graph TD;\n A-->B;`.
 
-Formato OBRIGATÓRIO do JSON de saída (Respeite a ordem dos blocos):
+Formato OBRIGATÓRIO do JSON de saída (A array 'blocos' deve fluir como uma aula, use quantos blocos de explicacao ou mermaid achar natural, seguido por exemplo e depois os exercicios no final):
 {{
   "blocos": [
     {{
       "tipo": "explicacao",
-      "conteudo": "1) A Analogia Elite (Crie uma âncora memorável). 2) A Regra Real (traduza a analogia para o conceito técnico em 2 frases). 3) A Armadilha Comum (o que a maioria erra)."
+      "conteudo": "A teoria base ensinada de forma clara. (Pode ter mais de um bloco de explicação se for longo)"
     }},
     {{
-      "tipo": "visual",
-      "visual": {{
-        "tipo": "diagrama",
-        "descricao": "O que este mapa mental representa",
-        "codigo": "graph TD;\\n A[Início] --> B[Meio];\\n B --> C[Fim];"
-      }}
+      "tipo": "mermaid",
+      "codigo": "graph TD;\\n A[Início] --> B[Meio];"
     }},
     {{
       "tipo": "exemplo",
-      "conteudo": "O 'Missão na Prática': um exemplo desafiador, resolvido num esquema passo a passo de raciocínio, e não apenas uma conta jogada."
+      "conteudo": "Um exemplo prático passo a passo para ilustrar a teoria."
     }},
     {{
       "tipo": "exercicios",
-      "lista": ["Uma questão que exige interpretação usando a analogia criada", "Uma questão direta de cálculo/aplicação do tema"]
+      "lista": ["Uma pergunta curta de checagem do conceito", "Um exercício prático e direto"]
     }}
   ]
 }}
@@ -297,16 +294,23 @@ def gerar_questoes(tema: str = "tema geral", quantidade: int = 3) -> list[dict]:
     ]
 
 
-def acionar_tutor_socratico(tema: str, contexto: str, pergunta: str) -> str:
-    prompt = f"""Você é o Amigo Elite, um tutor particular de elite auxiliando um aluno num painel lateral durante uma aula.
+def acionar_tutor_socratico(tema: str, contexto: str, pergunta: str, historico: list = None) -> str:
+    historico_str = ""
+    if historico:
+        historico_formatado = "\n".join([f"({msg.get('role', 'unknown')}): {msg.get('text', '')}" for msg in historico[-4:]])
+        historico_str = f"Histórico recente da conversa:\n{historico_formatado}\n"
+
+    prompt = f"""Você é um Mentor de Estudo auxiliando um aluno num painel lateral durante uma aula.
 Tema atual da aula: {tema}
 Contexto do que o aluno estava lendo: {contexto[:500]}
-Dúvida do aluno: {pergunta}
+
+{historico_str}
+Dúvida atual do aluno: {pergunta}
 
 REGRAS:
-1. Responda de forma direta e curta (máx 3-4 frases curtas).
-2. Não dê respostas mastigadas. Faça uma provocação inteligente ou use uma analogia inusitada para desbloquear a mente dele.
-3. Use um tom encorajador e sagaz. Fale diretamente com o aluno ("você").
+1. Responda de forma direta, clara e empática (máx 3-4 frases curtas).
+2. Mantenha o contexto das mensagens anteriores se for uma continuação da dúvida.
+3. Se o aluno não entender de primeira, explique de um ângulo diferente (mas sem jargões forçados ou papo de coach).
 """
     raw, erro = _chamar_ia(prompt)
 
@@ -327,22 +331,22 @@ REGRAS:
         return raw.strip() if raw else "Estou digerindo o conceito, pergunte novamente!"
 
 def avaliar_resposta_exercicio(tema: str, enunciado: str, resposta_usuario: str) -> dict:
-    prompt = f"""Atuando como o "Amigo Elite" avaliando uma resposta durante o Micro-learning:
+    prompt = f"""Atuando como um Mentor de Estudo avaliando uma resposta de aluno:
 Tema da Aula: {tema}
 Pergunta Feita: {enunciado}
 Resposta do Aluno: {resposta_usuario}
 
 Sua tarefa é ler a resposta e avaliar a intuição e raciocínio por trás dela.
 
-REGRAS DE AVALIAÇÃO ELITE:
-1. O FOCO É SOCRÁTICO: Ignore erros de digitação ou respostas "feias". O aluno pegou o "pulo do gato"? Ele entendeu a essência? Se sim, considere correto.
-2. FEEDBACK CURTO DE IMPACTO: Responda em no MÁXIMO 2 frases. Use tom de recompensa. Se acertou, valide o raciocínio dele de forma empolgante ("Baita sacada! Exatamente isso..."). Se errou, não dê sermão, faça ele pensar ("Quase. Mas lembra da analogia que a gente viu? O que aconteceria se...").
-3. NUNCA DEIXE A RESPOSTA PURA NO FEEDBACK SE ELE ERROU: Dê apenas uma forte pista pra ele continuar a missão.
+REGRAS DE AVALIAÇÃO:
+1. O FOCO É ENTENDIMENTO GERAL: Ignore erros de digitação. O aluno entendeu a essência? Se sim, considere correto.
+2. FEEDBACK CURTO E DIRETO: Responda em no MÁXIMO 2 frases. Use tom encorajador e amigável. Se acertou, parabenize de forma simples. Se errou, mostre de forma lógica onde foi o erro para que ele tente de novo. Não force frases ou jargões de coach motivacional.
+3. NUNCA DÊ A RESPOSTA PURA SE ELE ERROU: Dê uma pista ou faça uma pergunta que o ajude a chegar na conclusão correta sozinho.
 
 Retorne ESTRITAMENTE o formato JSON a seguir:
 {{
   "correto": true ou false,
-  "feedback": "Feedback de Elite: empolgante, recompensador se acertou, intrigante e socrático se errou. Máx 2 frases curtas."
+  "feedback": "Feedback direto, amigável e focado em aprendizado matemático/lógico. Máx 2 frases curtas."
 }}"""
 
     raw, _ = _chamar_ia(prompt)
@@ -410,22 +414,22 @@ def gerar_estrutura_tema(tema: str) -> list[dict]:
         qtd_sugerida = 5
 
     prompt = f"""
-Sua tarefa é dividir o tema principal em submissões (subtemas) para uma trilha de Micro-learning Socrático de Elite.
+Sua tarefa é dividir o tema principal em subtemas estruturados para uma trilha de estudo progressiva.
 
 Tema: {tema}
 
 Regras ABSOLUTAS:
-1. Você DEVE quebrar o tema na quantidade sugerida: {qtd_sugerida} submissões.
-2. Nomes impactantes: O campo "nome" deve ser curto mas instigante (Ex: "A Anatomia da Equação", e não apenas "Equação Básica").
+1. Você DEVE quebrar o tema na quantidade sugerida: {qtd_sugerida} subtemas lógicos e sequenciais.
+2. Nomes descritivos: O campo "nome" deve descrever de forma clara e direta o que será estudado no bloco.
 3. DIRETO AO PONTO: É ABSOLUTAMENTE PROIBIDO gerar tópicos de revisão genérica inicial.
-4. O campo "foco_delimitado" DEVE guiar o conteúdo a focar em 1 ou 2 conceitos-chave e instruir explicitamente qual analogia central pode ser usada lá.
+4. O campo "foco_delimitado" DEVE guiar o conteúdo a focar em 1 ou 2 conceitos-chave, ditando rigorosamente a teoria/fórmula específica que deve ser coberta. Não obrigue o uso de analogias.
 
 Retorne ESTRITAMENTE um objeto JSON no formato abaixo:
 {{
   "subtemas": [
     {{
-      "nome": "Nome Curto e Impactante",
-      "foco_delimitado": "Foco estrito do que ensinar + sugestão curta de analogia a usar."
+      "nome": "Nome do Subtema",
+      "foco_delimitado": "Foco estrito do que ensinar neste bloco."
     }}
   ]
 }}
