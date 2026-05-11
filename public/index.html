@@ -220,7 +220,7 @@
       .task-card.done { border-color: rgba(16, 185, 129, 0.3); }
       .task-card.done::after { content: "✅"; position: absolute; top: 16px; right: 16px; }
 
-      .task-card h3 { font-size: 18px; margin-bottom: 8px; color: #fff; }
+      .task-card h3 { font-size: 18px; margin-bottom: 8px; color: var(--text-main); }
       .task-card p { font-size: 14px; color: var(--text-muted); margin: 0; }
 
       /* Lesson Blocks */
@@ -233,16 +233,16 @@
       .lesson-block.exemplo { border-left: 4px solid var(--secondary); }
       .lesson-block.exercicio { border-left: 4px solid #f59e0b; }
 
-      .markdown-body { font-size: 16px; line-height: 1.7; color: #cbd5e1; }
-      .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #fff; margin-top: 1.5em; margin-bottom: 0.8em; }
+      .markdown-body { font-size: 16px; line-height: 1.7; color: var(--text-muted); }
+      .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: var(--text-main); margin-top: 1.5em; margin-bottom: 0.8em; }
       .markdown-body p { margin-bottom: 1.2em; }
-      .markdown-body strong { color: #fff; }
-      .markdown-body pre { background: rgba(0,0,0,0.4); padding: 16px; border-radius: 8px; overflow-x: auto; margin-bottom: 1.2em; }
+      .markdown-body strong { color: var(--text-main); font-weight: 700; }
+      .markdown-body pre { background: var(--bg-body); padding: 16px; border-radius: 8px; overflow-x: auto; margin-bottom: 1.2em; border: 1px solid var(--border-color); }
       .markdown-body code { font-family: "JetBrains Mono", monospace; color: var(--primary); background: rgba(139, 92, 246, 0.1); padding: 2px 6px; border-radius: 4px; }
-      .markdown-body pre code { color: #e2e8f0; background: transparent; padding: 0; }
+      .markdown-body pre code { color: var(--text-main); background: transparent; padding: 0; }
 
       .exercise-area { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
-      .exercise-area textarea { background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white; padding: 16px; border-radius: 12px; min-height: 80px; resize: vertical; outline: none; }
+      .exercise-area textarea { background: #ffffff; border: 1px solid var(--border-color); color: var(--text-main); padding: 16px; border-radius: 12px; min-height: 80px; resize: vertical; outline: none; }
       .exercise-area textarea:focus { border-color: var(--primary); }
 
       .row { display: flex; gap: 12px; }
@@ -286,6 +286,8 @@
           <div class="nav-item active" onclick="navigate('trilha')">📚 Trilha Atual</div>
           <div class="nav-item" onclick="navigate('lab')">🧪 Lab de Erros</div>
           <div class="nav-item" onclick="navigate('simulados')">🎯 Simulados</div>
+          <div style="margin-top: 40px;"></div>
+          <div class="nav-item" style="color: var(--primary); font-weight: bold;" onclick="navigate('onboarding')">🔄 Nova Trilha</div>
         </div>
       </aside>
 
@@ -607,10 +609,24 @@
               const el = mermaidDivs[i];
               const p = document.createElement('div');
               p.className = 'mermaid';
-              p.textContent = el.textContent;
+
+              // Limpar blocos de crase e a palavra mermaid se vierem incorretamente dentro do elemento
+              let cleanText = el.textContent || '';
+              cleanText = cleanText.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
+
+              p.textContent = cleanText;
               el.parentNode.replaceWith(p);
             }
-            await window.mermaid.run({ nodes: targetDiv.querySelectorAll('.mermaid') }).catch(e => console.error(e));
+            try {
+                const nodesToRun = targetDiv.querySelectorAll('.mermaid');
+                if (nodesToRun.length > 0) {
+                    await window.mermaid.run({ nodes: nodesToRun }).catch(e => {
+                        console.warn("Mermaid inner catch:", e);
+                    });
+                }
+            } catch (err) {
+                console.error("Mermaid Parse Error Intercepted:", err);
+            }
           }
       }
 
@@ -679,7 +695,11 @@
           }
           else if (bloco.tipo === 'visual' || bloco.tipo === 'mermaid') {
               // Diagrama puro em vez de canvas falho
-              const codeString = bloco.codigo || (bloco.visual && bloco.visual.codigo) || bloco.conteudo || "graph TD;\nA[Falta de Dados]-->B[Erro]";
+              let codeString = bloco.codigo || (bloco.visual && bloco.visual.codigo) || bloco.conteudo || "graph TD;\nA[Falta de Dados]-->B[Erro]";
+
+              // Remove blockquotes or markdown codeblocks already present in string so we don't double up
+              codeString = codeString.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
+
               // Garante que o cógigo não gere markdown incompleto e seja devidamente formatado para mermaid renderizar
               const mermaidBlock = "```mermaid\n" + codeString + "\n```";
               await renderMarkdown(contentDiv, mermaidBlock);
