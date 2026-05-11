@@ -144,10 +144,7 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
 
 def gerar_mensagem_amigo(tema: str) -> str:
     mensagens = [
-        f"Preste atenção: {tema} costuma cair bastante em prova. Vamos entender a lógica por trás disso.",
-        f"Dica de amigo: Entender o fundamento de {tema} vai te poupar muito tempo na hora de resolver questões.",
-        f"Essa é uma armadilha clássica. Se você dominar {tema} hoje, já garante pontos preciosos.",
-        f"Vamos focar na base de {tema}, isso vai desbloquear a compreensão de vários outros assuntos."
+        f"Resumo direto de {tema}: focando na lógica principal."
     ]
     return random.choice(mensagens)
 
@@ -184,19 +181,19 @@ def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     # A limitação drástica (FREE_DAILY_LIMIT) foi desativada durante os testes/desenvolvimento
     # para garantir que os testes massivos não ativem bloqueios artificiais silenciando a OpenAI.
 
-    prompt = f"""Você é um Mentor de Estudo Experiente.
-Sua tarefa é gerar uma aula de micro-learning focada e direta, atuando como um professor particular altamente inteligente, didático e empático, que prepara o aluno para concursos e provas difíceis.
+    prompt = f"""Você é um Tutor Técnico Especialista e Objetivo.
+Sua tarefa é gerar uma aula de micro-learning estritamente técnica, direta e focada. Não use persona de coach ou mentor. Não use frases motivacionais. Vá direto para o conteúdo.
 
 Matéria: {materia}
 Tema: {tema}
 Foco Específico: {foco_delimitado}
 
 REGRAS OBRIGATÓRIAS:
-- Vá direto ao ponto. Explique o conceito de forma lógica, coesa e clara. Sem jargões exagerados de coach, mas seja encorajador.
-- Use analogias APENAS se elas realmente facilitarem a compreensão do aluno de forma natural. Não force analogias do cotidiano se uma explicação matemática estruturada for mais eficiente.
-- A linguagem deve ser de um amigo experiente: direto, claro e focado em resolver problemas. Use "você".
+- Vá direto ao ponto. Explique o conceito de forma lógica, coesa e clara. É ESTRITAMENTE PROIBIDO usar jargões de coach, frases como "armadilha clássica", "dica de ouro", "garante pontos", ou resumos estilo "Resumo rápido".
+- Não faça rodeios. A primeira frase já deve ser o conteúdo.
+- A linguagem deve ser de um manual técnico altamente didático e objetivo. Use "você".
 - Ensine SOMENTE o recorte solicitado em Foco Específico.
-- Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
+- Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`. Ao usar expoentes dentro do modo matemático, prefira `^` ao invés de `**` para evitar conflito com negrito Markdown (ex: `$x^2$`, não `$x**2$`). Evite usar formatação de itálico/negrito do markdown DENTRO de blocos matemáticos.
 - Diagramas: Se um diagrama de fluxo ou árvore ajudar a explicar (e APENAS se fizer sentido matemático/lógico), você pode adicionar blocos do tipo "mermaid". ATENÇÃO: a propriedade "codigo" do mermaid não deve conter aspas não escapadas ou parênteses que quebrem o parser JS. Faça diagramas simples como `graph TD;\n A-->B;`.
 
 Formato OBRIGATÓRIO do JSON de saída (A array 'blocos' deve fluir como uma aula, use quantos blocos de explicacao ou mermaid achar natural, seguido por exemplo e depois os exercicios no final):
@@ -300,17 +297,18 @@ def acionar_tutor_socratico(tema: str, contexto: str, pergunta: str, historico: 
         historico_formatado = "\n".join([f"({msg.get('role', 'unknown')}): {msg.get('text', '')}" for msg in historico[-4:]])
         historico_str = f"Histórico recente da conversa:\n{historico_formatado}\n"
 
-    prompt = f"""Você é um Mentor de Estudo auxiliando um aluno num painel lateral durante uma aula.
+    prompt = f"""Você é um Tutor Técnico de Estudo auxiliando um aluno num painel lateral durante uma aula.
 Tema atual da aula: {tema}
 Contexto do que o aluno estava lendo: {contexto[:500]}
 
 {historico_str}
 Dúvida atual do aluno: {pergunta}
 
-REGRAS:
-1. Responda de forma direta, clara e empática (máx 3-4 frases curtas).
-2. Mantenha o contexto das mensagens anteriores se for uma continuação da dúvida.
-3. Se o aluno não entender de primeira, explique de um ângulo diferente (mas sem jargões forçados ou papo de coach).
+REGRAS OBRIGATÓRIAS:
+1. Responda de forma estritamente técnica, direta, e clara (máx 3-4 frases curtas).
+2. É ESTRITAMENTE PROIBIDO usar linguagem de coach, frases de motivação, jargões como "armadilha clássica", "dica de ouro", ou falar "olá" e "vamos lá". Vá direto para a resposta técnica e seja absurdamente objetivo.
+3. Mantenha o contexto das mensagens anteriores se for uma continuação da dúvida.
+4. Explique a dúvida pontualmente.
 """
     raw, erro = _chamar_ia(prompt)
 
