@@ -17,7 +17,7 @@
       window.MathJax = {
         tex: {
           inlineMath: [['$', '$'], ['\\(', '\\)']],
-          displayMath: [['$$', '$$'], ['\\[', '\\]'], ['[', ']']]
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
         },
         startup: {
           typeset: false
@@ -175,7 +175,7 @@
       }
       .tutor-input-area input {
         flex: 1; background: var(--bg-card); border: 1px solid var(--border-color);
-        color: #fff; padding: 12px; border-radius: 12px; outline: none; margin: 0;
+        color: var(--text-main); padding: 12px; border-radius: 12px; outline: none; margin: 0;
       }
       .tutor-input-area button {
         background: var(--primary); border: none; padding: 12px 16px; border-radius: 12px;
@@ -196,7 +196,7 @@
       input.main-input, textarea.main-textarea {
         width: 100%; padding: 16px; border-radius: 12px;
         background: var(--bg-card); border: 1px solid var(--border-color);
-        color: #fff; margin-bottom: 16px; font-size: 16px; outline: none;
+        color: var(--text-main); margin-bottom: 16px; font-size: 16px; outline: none;
       }
       input.main-input:focus { border-color: var(--primary); }
 
@@ -601,8 +601,16 @@
 
       async function renderMarkdown(targetDiv, mdText) {
           const safeText = (mdText || '').toString().trim() || 'Conteúdo indisponível.';
+
           targetDiv.innerHTML = `<div class="markdown-body">${marked.parse(safeText)}</div>`;
-          if (window.MathJax) await MathJax.typesetPromise([targetDiv]);
+
+          if (window.MathJax) {
+            try {
+              await MathJax.typesetPromise([targetDiv]);
+            } catch (e) {
+              console.error("MathJax Error:", e);
+            }
+          }
           if (window.mermaid) {
             const mermaidDivs = targetDiv.querySelectorAll('.language-mermaid');
             for (let i = 0; i < mermaidDivs.length; i++) {
@@ -615,7 +623,12 @@
               cleanText = cleanText.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
 
               p.textContent = cleanText;
-              el.parentNode.replaceWith(p);
+              // replace the pre > code with just the mermaid div
+              if(el.parentNode.tagName === 'PRE') {
+                el.parentNode.replaceWith(p);
+              } else {
+                el.replaceWith(p);
+              }
             }
             try {
                 const nodesToRun = targetDiv.querySelectorAll('.mermaid');

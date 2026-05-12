@@ -142,16 +142,6 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         return None, f"Retorno inesperado da IA: {e}"
 
 
-def gerar_mensagem_amigo(tema: str) -> str:
-    mensagens = [
-        f"Preste atenção: {tema} costuma cair bastante em prova. Vamos entender a lógica por trás disso.",
-        f"Dica de amigo: Entender o fundamento de {tema} vai te poupar muito tempo na hora de resolver questões.",
-        f"Essa é uma armadilha clássica. Se você dominar {tema} hoje, já garante pontos preciosos.",
-        f"Vamos focar na base de {tema}, isso vai desbloquear a compreensão de vários outros assuntos."
-    ]
-    return random.choice(mensagens)
-
-
 def _extrair_funcoes_para_visuais(texto: str) -> list[str]:
     if not texto:
         return []
@@ -171,13 +161,6 @@ def _extrair_funcoes_para_visuais(texto: str) -> list[str]:
 def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     cached = get_cached_content(materia, tema, foco_delimitado)
     if cached:
-        # Prependa a mensagem amigável no início da explicação para não quebrar o frontend
-        mensagem = gerar_mensagem_amigo(tema)
-        blocos = cached.get("blocos", [])
-        if blocos and blocos[0].get("tipo") == "explicacao":
-            conteudo_atual = blocos[0].get("conteudo", "")
-            if f"**{mensagem}**" not in conteudo_atual:
-                blocos[0]["conteudo"] = f"**{mensagem}**\n\n{conteudo_atual}"
         quality = avaliar_qualidade_aula(cached)
         return {**cached, "cache": True, "quality": quality, "prompt_version": "v2-mentor"}
 
@@ -197,18 +180,14 @@ REGRAS OBRIGATÓRIAS:
 - A linguagem deve ser de um amigo experiente: direto, claro e focado em resolver problemas. Use "você".
 - Ensine SOMENTE o recorte solicitado em Foco Específico.
 - Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
-- Diagramas: Se um diagrama de fluxo ou árvore ajudar a explicar (e APENAS se fizer sentido matemático/lógico), você pode adicionar blocos do tipo "mermaid". ATENÇÃO: a propriedade "codigo" do mermaid não deve conter aspas não escapadas ou parênteses que quebrem o parser JS. Faça diagramas simples como `graph TD;\n A-->B;`.
+- Diagramas: Se um diagrama de fluxo ou árvore ajudar a explicar (e APENAS se fizer sentido matemático/lógico), inclua os diagramas diretamente no texto da "explicacao" usando o bloco de código markdown ```mermaid ... ```. Não crie um bloco de tipo "mermaid" ou "visual" separado no JSON.
 
-Formato OBRIGATÓRIO do JSON de saída (A array 'blocos' deve fluir como uma aula, use quantos blocos de explicacao ou mermaid achar natural, seguido por exemplo e depois os exercicios no final):
+Formato OBRIGATÓRIO do JSON de saída (A array 'blocos' deve fluir como uma aula natural, seguido por exemplo e depois os exercicios no final):
 {{
   "blocos": [
     {{
       "tipo": "explicacao",
-      "conteudo": "A teoria base ensinada de forma clara. (Pode ter mais de um bloco de explicação se for longo)"
-    }},
-    {{
-      "tipo": "mermaid",
-      "codigo": "graph TD;\\n A[Início] --> B[Meio];"
+      "conteudo": "A teoria base ensinada de forma clara. Se precisar de um diagrama, use o bloco ```mermaid\\ngraph TD;\\n A[Início] --> B[Meio];\\n``` diretamente aqui no texto."
     }},
     {{
       "tipo": "exemplo",
@@ -226,7 +205,7 @@ REGRAS DOS EXERCÍCIOS:
 - Não incluir gabarito na pergunta.
 
 REGRAS DE VISUAIS:
-- Você é EXCELENTE em Mermaid.js. O campo 'codigo' do bloco visual DEVE SEMPRE conter um código Mermaid.js válido (ex: graph TD, pie, sequenceDiagram, mindmap) que ajude a explicar a intuição do assunto. Não use aspas triplas dentro do valor do JSON.
+- Você é EXCELENTE em Mermaid.js. Sempre que ajudar na intuição matemática/lógica, inclua código Mermaid válido (ex: graph TD, pie, sequenceDiagram) diretamente no conteúdo markdown usando ```mermaid ... ```.
 
 ABSOLUTAMENTE PROIBIDO:
 - Não imprima pensamentos, auditoria, justificativas de bastidores ou texto fora do JSON.
@@ -263,16 +242,6 @@ Retorne estritamente o objeto JSON.
         content = revisar_aula(content)
         set_cached_content(materia, tema, foco_delimitado, content)
 
-    mensagem = gerar_mensagem_amigo(tema)
-
-    # Injeta a mensagem no primeiro bloco de explicacao ou adiciona no topo
-    blocos = content.get("blocos", [])
-    if blocos and blocos[0].get("tipo") == "explicacao":
-        explicacao_atual = blocos[0].get("conteudo", "")
-        blocos[0]["conteudo"] = f"**{mensagem}**\n\n{explicacao_atual}"
-    else:
-        blocos.insert(0, {"tipo": "explicacao", "conteudo": f"**{mensagem}**"})
-
     quality = avaliar_qualidade_aula(content)
     if not quality["aprovado"]:
         content = revisar_aula(content)
@@ -300,7 +269,7 @@ def acionar_tutor_socratico(tema: str, contexto: str, pergunta: str, historico: 
         historico_formatado = "\n".join([f"({msg.get('role', 'unknown')}): {msg.get('text', '')}" for msg in historico[-4:]])
         historico_str = f"Histórico recente da conversa:\n{historico_formatado}\n"
 
-    prompt = f"""Você é um Mentor de Estudo auxiliando um aluno num painel lateral durante uma aula.
+    prompt = f"""Você é um Tutor Analítico e Profissional auxiliando um aluno num painel lateral durante uma aula.
 Tema atual da aula: {tema}
 Contexto do que o aluno estava lendo: {contexto[:500]}
 
@@ -308,9 +277,9 @@ Contexto do que o aluno estava lendo: {contexto[:500]}
 Dúvida atual do aluno: {pergunta}
 
 REGRAS:
-1. Responda de forma direta, clara e empática (máx 3-4 frases curtas).
+1. Responda de forma direta, clara e objetiva. Vá direto ao ponto. Sem frases motivacionais, jargões de coach, ou elogios vazios.
 2. Mantenha o contexto das mensagens anteriores se for uma continuação da dúvida.
-3. Se o aluno não entender de primeira, explique de um ângulo diferente (mas sem jargões forçados ou papo de coach).
+3. Fale apenas sobre a dúvida apresentada, explicando de forma analítica e estruturada (máx 3-4 frases).
 """
     raw, erro = _chamar_ia(prompt)
 
