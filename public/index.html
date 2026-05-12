@@ -233,7 +233,7 @@
       .lesson-block.exemplo { border-left: 4px solid var(--secondary); }
       .lesson-block.exercicio { border-left: 4px solid #f59e0b; }
 
-      .markdown-body { font-size: 16px; line-height: 1.7; color: var(--text-muted); }
+      .markdown-body { font-size: 18px; line-height: 1.7; color: var(--text-main); }
       .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: var(--text-main); margin-top: 1.5em; margin-bottom: 0.8em; }
       .markdown-body p { margin-bottom: 1.2em; }
       .markdown-body strong { color: var(--text-main); font-weight: 700; }
@@ -618,12 +618,11 @@
               const p = document.createElement('div');
               p.className = 'mermaid';
 
-              // Limpar blocos de crase e a palavra mermaid se vierem incorretamente dentro do elemento
-              let cleanText = el.textContent || '';
-              cleanText = cleanText.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
-
-              // Unescape html entities that marked.js might have generated from > or <
+              // O marked.js decodifica o texto em HTML entities (ex: &gt;), mas o mermaid precisa dos caracteres originais.
+              // Então precisamos reverter essas entidades.
+              let cleanText = el.innerHTML || '';
               cleanText = cleanText.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+              cleanText = cleanText.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
 
               p.textContent = cleanText;
               // replace the pre > code with just the mermaid div
@@ -636,16 +635,8 @@
             try {
                 const nodesToRun = targetDiv.querySelectorAll('.mermaid');
                 if (nodesToRun.length > 0) {
-                    // Reset the mermaid counter to avoid ID collisions on re-renders
-                    mermaid.mermaidAPI.reset();
                     await window.mermaid.run({ nodes: nodesToRun }).catch(e => {
                         console.warn("Mermaid inner catch:", e);
-                        // Fallback text if mermaid fails entirely so it doesn't leave a blank block
-                        nodesToRun.forEach(n => {
-                           if (!n.hasChildNodes() || n.innerHTML.trim() === n.textContent.trim()) {
-                               n.innerHTML = `<div style="padding: 10px; color: #ef4444; border: 1px solid #ef4444; border-radius: 4px;">Diagrama indisponível (Erro de Sintaxe)</div>`;
-                           }
-                        });
                     });
                 }
             } catch (err) {
@@ -778,10 +769,22 @@
           chat.innerHTML += `<div class="msg-bubble msg-user">${text}</div>`;
           chat.scrollTop = chat.scrollHeight;
 
-          // Se houver um bloco ativo, mandamos o contexto
+          // Agrupar todo o conteúdo da aula lido até o momento para dar contexto real ao tutor
           let contexto = "Aula Genérica";
-          if (state.lessonActive && state.lessonActive.conteudo && state.lessonActive.conteudo.blocos[state.lessonStep]) {
-              contexto = state.lessonActive.conteudo.blocos[state.lessonStep].conteudo || "";
+          if (state.lessonActive && state.lessonActive.conteudo && state.lessonActive.conteudo.blocos) {
+              let conteudosLidos = [];
+              for(let i = 0; i <= state.lessonStep; i++) {
+                 if (state.lessonActive.conteudo.blocos[i]) {
+                     let textoBloco = state.lessonActive.conteudo.blocos[i].conteudo || "";
+                     // Adiciona perguntas caso o aluno pergunte sobre o exercício ativo
+                     if (state.lessonActive.conteudo.blocos[i].tipo === 'exercicios' || state.lessonActive.conteudo.blocos[i].tipo === 'exercicio') {
+                         const perguntas = state.lessonActive.conteudo.blocos[i].perguntas || state.lessonActive.conteudo.blocos[i].lista || [];
+                         textoBloco += " " + perguntas.join(" | ");
+                     }
+                     conteudosLidos.push(textoBloco);
+                 }
+              }
+              contexto = conteudosLidos.join("\n\n");
           }
 
           const loaderId = `ld-${Date.now()}`;
