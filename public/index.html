@@ -17,7 +17,7 @@
       window.MathJax = {
         tex: {
           inlineMath: [['$', '$'], ['\\(', '\\)']],
-          displayMath: [['$$', '$$'], ['\\[', '\\]'], ['[', ']']]
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
         },
         startup: {
           typeset: false
@@ -176,9 +176,6 @@
       .tutor-input-area input {
         flex: 1; background: var(--bg-card); border: 1px solid var(--border-color);
         color: var(--text-main); padding: 12px; border-radius: 12px; outline: none; margin: 0;
-      }
-      .tutor-input-area input::placeholder, textarea.main-textarea::placeholder, input.main-input::placeholder, .exercise-area textarea::placeholder {
-        color: var(--text-muted);
       }
       .tutor-input-area button {
         background: var(--primary); border: none; padding: 12px 16px; border-radius: 12px;
@@ -604,8 +601,16 @@
 
       async function renderMarkdown(targetDiv, mdText) {
           const safeText = (mdText || '').toString().trim() || 'Conteúdo indisponível.';
+
           targetDiv.innerHTML = `<div class="markdown-body">${marked.parse(safeText)}</div>`;
-          if (window.MathJax) await MathJax.typesetPromise([targetDiv]);
+
+          if (window.MathJax) {
+            try {
+              await MathJax.typesetPromise([targetDiv]);
+            } catch (e) {
+              console.error("MathJax Error:", e);
+            }
+          }
           if (window.mermaid) {
             const mermaidDivs = targetDiv.querySelectorAll('.language-mermaid');
             for (let i = 0; i < mermaidDivs.length; i++) {
@@ -621,12 +626,11 @@
               cleanText = cleanText.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 
               p.textContent = cleanText;
-
-              // marked usually wraps in <pre><code class="language-mermaid">
-              if (el.parentNode.tagName === 'PRE') {
-                 el.parentNode.replaceWith(p);
+              // replace the pre > code with just the mermaid div
+              if(el.parentNode.tagName === 'PRE') {
+                el.parentNode.replaceWith(p);
               } else {
-                 el.replaceWith(p);
+                el.replaceWith(p);
               }
             }
             try {
