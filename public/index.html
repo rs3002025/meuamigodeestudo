@@ -622,6 +622,9 @@
               let cleanText = el.textContent || '';
               cleanText = cleanText.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
 
+              // Unescape html entities that marked.js might have generated from > or <
+              cleanText = cleanText.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+
               p.textContent = cleanText;
               // replace the pre > code with just the mermaid div
               if(el.parentNode.tagName === 'PRE') {
@@ -633,8 +636,16 @@
             try {
                 const nodesToRun = targetDiv.querySelectorAll('.mermaid');
                 if (nodesToRun.length > 0) {
+                    // Reset the mermaid counter to avoid ID collisions on re-renders
+                    mermaid.mermaidAPI.reset();
                     await window.mermaid.run({ nodes: nodesToRun }).catch(e => {
                         console.warn("Mermaid inner catch:", e);
+                        // Fallback text if mermaid fails entirely so it doesn't leave a blank block
+                        nodesToRun.forEach(n => {
+                           if (!n.hasChildNodes() || n.innerHTML.trim() === n.textContent.trim()) {
+                               n.innerHTML = `<div style="padding: 10px; color: #ef4444; border: 1px solid #ef4444; border-radius: 4px;">Diagrama indisponível (Erro de Sintaxe)</div>`;
+                           }
+                        });
                     });
                 }
             } catch (err) {
