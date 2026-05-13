@@ -3,3 +3,4 @@ psycopg[binary]==3.2.9
 requests==2.31.0
 numpy==1.26.4
 sympy==1.14.0
+matplotlib==3.8.4

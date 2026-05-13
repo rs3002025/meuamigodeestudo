@@ -142,22 +142,6 @@ def _chamar_ia(prompt: str) -> tuple[str | None, str | None]:
         return None, f"Retorno inesperado da IA: {e}"
 
 
-def _extrair_funcoes_para_visuais(texto: str) -> list[str]:
-    if not texto:
-        return []
-    candidatos = re.findall(r"y\s*=\s*[^\n,;]+", texto, flags=re.IGNORECASE)
-    validos: list[str] = []
-    for c in candidatos:
-        fn = c.strip().replace("**", "^")
-        fn = re.sub(r"[^0-9a-zA-Z\s\^\*\+\-\/=().,]", "", fn)
-        fn = re.sub(r"\s+(para|onde|com|pois|porque)\b.*$", "", fn, flags=re.IGNORECASE)
-        fn = fn.strip()
-        if len(fn) <= 80 and any(ch in fn.lower() for ch in ["x", "sin", "cos", "tan", "log", "exp"]):
-            if fn not in validos:
-                validos.append(fn)
-    return validos[:2]
-
-
 def gerar_conteudo(materia: str, tema: str, foco_delimitado: str = "") -> dict:
     cached = get_cached_content(materia, tema, foco_delimitado)
     if cached:
@@ -180,14 +164,18 @@ REGRAS OBRIGATÓRIAS:
 - A linguagem deve ser de um amigo experiente: direto, claro e focado em resolver problemas. Use "você".
 - Ensine SOMENTE o recorte solicitado em Foco Específico.
 - Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
-- Diagramas: Se um diagrama de fluxo ou árvore ajudar a explicar (e APENAS se fizer sentido matemático/lógico), inclua os diagramas diretamente no texto da "explicacao" usando o bloco de código markdown ```mermaid ... ```. Não crie um bloco de tipo "mermaid" ou "visual" separado no JSON.
+- Gráficos Matemáticos: Se você estiver ensinando uma função matemática ou conceito que fica mais claro com um gráfico cartesiano (ex: função de 1º ou 2º grau), adicione um bloco do tipo "grafico_matematico" com a fórmula. Nosso motor backend gerará um gráfico perfeito em alta resolução para o aluno.
 
 Formato OBRIGATÓRIO do JSON de saída (A array 'blocos' deve fluir como uma aula natural, seguido por exemplo e depois os exercicios no final):
 {{
   "blocos": [
     {{
       "tipo": "explicacao",
-      "conteudo": "A teoria base ensinada de forma clara. Se precisar de um diagrama, use o bloco ```mermaid\\ngraph TD;\\n A[Início] --> B[Meio];\\n``` diretamente aqui no texto."
+      "conteudo": "A teoria base ensinada de forma clara."
+    }},
+    {{
+      "tipo": "grafico_matematico",
+      "funcao": "y = 2x + 1"
     }},
     {{
       "tipo": "exemplo",
@@ -205,8 +193,8 @@ REGRAS DOS EXERCÍCIOS:
 - Não incluir gabarito na pergunta.
 
 REGRAS DE VISUAIS:
-- Você é EXCELENTE em Mermaid.js. Sempre que ajudar na intuição matemática/lógica, inclua código Mermaid válido (ex: graph TD, pie, sequenceDiagram) diretamente no conteúdo markdown usando ```mermaid ... ```.
-- NÃO use parênteses soltos ou aspas que não sejam suportadas pelo Mermaid. Se for usar labels em nós, use aspas duplas, ex: `A["Texto"] --> B["Texto"]`.
+- Se precisar mostrar uma função matemática, use APENAS o bloco do tipo "grafico_matematico".
+- NÃO gere código mermaid ou ascii art para tentar desenhar gráficos. Nosso sistema de backend cuida disso. Apenas passe a função puramente matemática no campo "funcao", ex: "y = x^2".
 
 ABSOLUTAMENTE PROIBIDO:
 - Não imprima pensamentos, auditoria, justificativas de bastidores ou texto fora do JSON.

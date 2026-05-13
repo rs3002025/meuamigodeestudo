@@ -2,9 +2,44 @@ import sympy as sp
 import numpy as np
 import logging
 import re
+import io
+import base64
+import matplotlib
+matplotlib.use('Agg')  # Configura para não precisar de display gráfico
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
+
+def gerar_grafico_base64(x_vals, y_vals, titulo="Gráfico"):
+    try:
+        plt.figure(figsize=(6, 4))
+        plt.plot(x_vals, y_vals, color='#6366f1', linewidth=2.5, marker='o', markersize=4)
+
+        # Estilização
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.axhline(0, color='black', linewidth=1)
+        plt.axvline(0, color='black', linewidth=1)
+        plt.title(titulo, fontsize=12, pad=10)
+        plt.xlabel("x", fontsize=10)
+        plt.ylabel("y", fontsize=10)
+
+        # Remove bordas
+        ax = plt.gca()
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        # Salva para base64
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+        plt.close()
+
+        img_str = base64.b64encode(buf.getvalue()).decode('utf-8')
+        return img_str
+    except Exception as e:
+        logger.error("Erro gerando imagem base64 matplotlib: %s", e)
+        plt.close()
+        return None
 
 def _pontos_conceituais(expr_str: str):
     x_vals = np.linspace(-4, 4, 9)
@@ -58,30 +93,24 @@ def gerar_pontos_funcao(funcao: str):
         return [], []
 
 def processar_visual(visual: dict):
-    # Se a IA informar a função matemática, nós geramos os pontos pra ela.
-    # Ex: "funcao": "y = x^2 - 4x + 3"
-    funcao_str = visual.get("funcao") or visual.get("dados", {}).get("funcao")
-    if funcao_str:
-        visual["tipo"] = "grafico"
-        x, y = gerar_pontos_funcao(funcao_str)
-        if x and y:
-            # Cria ou recria o 'dados' com as arrays que o frontend precisa
-            visual["dados"] = {"x": x, "y": y}
-        else:
-            # Fallback para casos conceituais (ex: y = ax + b)
-            visual["tipo"] = "diagrama"
-        return visual
-
-    if visual.get("tipo") != "grafico":
-        return visual
-
+    # Backward compatibility, visual node structure not used anymore, handled globally in processar_aula now
     return visual
 
 def processar_aula(parsed: dict) -> dict:
     blocos = parsed.get("blocos", [])
 
     for bloco in blocos:
-        if bloco["tipo"] == "visual" and "visual" in bloco:
+        if bloco["tipo"] == "grafico_matematico":
+            funcao_str = bloco.get("funcao", "")
+            if funcao_str:
+                x, y = gerar_pontos_funcao(funcao_str)
+                if x and y:
+                    imagem_base64 = gerar_grafico_base64(x, y, titulo=f"Gráfico de: {funcao_str}")
+                    if imagem_base64:
+                        bloco["imagem_base64"] = imagem_base64
+
+        # Legacy support
+        elif bloco["tipo"] == "visual" and "visual" in bloco:
             bloco["visual"] = processar_visual(bloco["visual"])
 
     return {"blocos": blocos}

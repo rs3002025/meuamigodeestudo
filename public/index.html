@@ -7,11 +7,6 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='50'%3E%F0%9F%A4%96%3C/text%3E%3C/svg%3E" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script type="module">
-      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-      mermaid.initialize({ startOnLoad: false, theme: 'default' });
-      window.mermaid = mermaid;
-    </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
       window.MathJax = {
@@ -266,13 +261,19 @@
 
       .hidden { display: none !important; }
 
-      .mermaid {
-          background: rgba(255, 255, 255, 0.03);
+      .grafico-matematico {
+          background: #ffffff;
           padding: 20px;
           border-radius: 12px;
           border: 1px solid var(--border-color);
           margin-bottom: 1.5em;
           text-align: center;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+      }
+      .grafico-matematico img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
       }
     </style>
   </head>
@@ -611,38 +612,6 @@
               console.error("MathJax Error:", e);
             }
           }
-          if (window.mermaid) {
-            const mermaidDivs = targetDiv.querySelectorAll('.language-mermaid');
-            for (let i = 0; i < mermaidDivs.length; i++) {
-              const el = mermaidDivs[i];
-              const p = document.createElement('div');
-              p.className = 'mermaid';
-
-              // O marked.js decodifica o texto em HTML entities (ex: &gt;), mas o mermaid precisa dos caracteres originais.
-              // Então precisamos reverter essas entidades.
-              let cleanText = el.innerHTML || '';
-              cleanText = cleanText.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
-              cleanText = cleanText.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
-
-              p.textContent = cleanText;
-              // replace the pre > code with just the mermaid div
-              if(el.parentNode.tagName === 'PRE') {
-                el.parentNode.replaceWith(p);
-              } else {
-                el.replaceWith(p);
-              }
-            }
-            try {
-                const nodesToRun = targetDiv.querySelectorAll('.mermaid');
-                if (nodesToRun.length > 0) {
-                    await window.mermaid.run({ nodes: nodesToRun }).catch(e => {
-                        console.warn("Mermaid inner catch:", e);
-                    });
-                }
-            } catch (err) {
-                console.error("Mermaid Parse Error Intercepted:", err);
-            }
-          }
       }
 
       async function renderLessonFlow() {
@@ -661,7 +630,7 @@
           blockDiv.className = `lesson-block ${bloco.tipo || 'explicacao'}`;
 
           // O Header do bloco
-          const titles = { 'explicacao': '📘 Teoria', 'exemplo': '💡 Exemplo Prático', 'exercicio': '⚔️ Exercícios', 'exercicios': '⚔️ Exercícios', 'mermaid': '📊 Mapa Mental/Diagrama', 'visual': '📊 Mapa Mental/Diagrama' };
+          const titles = { 'explicacao': '📘 Teoria', 'exemplo': '💡 Exemplo Prático', 'exercicio': '⚔️ Exercícios', 'exercicios': '⚔️ Exercícios', 'grafico_matematico': '📈 Gráfico Matemático', 'visual': '📊 Visualização' };
           const header = document.createElement('div');
           header.innerHTML = `<div style="font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px; font-size: 13px; letter-spacing: 1px;">${titles[bloco.tipo] || 'Módulo'}</div>`;
           blockDiv.appendChild(header);
@@ -708,16 +677,19 @@
                  }
               }
           }
-          else if (bloco.tipo === 'visual' || bloco.tipo === 'mermaid') {
-              // Diagrama puro em vez de canvas falho
-              let codeString = bloco.codigo || (bloco.visual && bloco.visual.codigo) || bloco.conteudo || "graph TD;\nA[Falta de Dados]-->B[Erro]";
+          else if (bloco.tipo === 'grafico_matematico') {
+              if (bloco.imagem_base64) {
+                  const pText = document.createElement('div');
+                  pText.innerHTML = `<div style="margin-bottom: 16px; font-weight: bold; color: var(--text-main);">${bloco.funcao}</div>`;
+                  contentDiv.appendChild(pText);
 
-              // Remove blockquotes or markdown codeblocks already present in string so we don't double up
-              codeString = codeString.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
-
-              // Garante que o cógigo não gere markdown incompleto e seja devidamente formatado para mermaid renderizar
-              const mermaidBlock = "```mermaid\n" + codeString + "\n```";
-              await renderMarkdown(contentDiv, mermaidBlock);
+                  const imgDiv = document.createElement('div');
+                  imgDiv.className = 'grafico-matematico';
+                  imgDiv.innerHTML = `<img src="data:image/png;base64,${bloco.imagem_base64}" alt="Gráfico de ${bloco.funcao}" />`;
+                  contentDiv.appendChild(imgDiv);
+              } else {
+                  contentDiv.innerHTML = `<div style="padding: 20px; background: #fff; border: 1px dashed var(--error); color: var(--error); text-align: center; border-radius: 8px;">Não foi possível plotar a função: ${bloco.funcao}</div>`;
+              }
           }
           else {
               await renderMarkdown(contentDiv, bloco.conteudo);
