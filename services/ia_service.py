@@ -163,7 +163,7 @@ REGRAS OBRIGATÓRIAS:
 - Use analogias APENAS se elas realmente facilitarem a compreensão do aluno de forma natural. Não force analogias do cotidiano se uma explicação matemática estruturada for mais eficiente.
 - A linguagem deve ser de um amigo experiente: direto, claro e focado em resolver problemas. Use "você".
 - Ensine SOMENTE o recorte solicitado em Foco Específico.
-- Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). PROIBIDO usar `\\[ ... \\]` ou `\\( ... \\)`.
+- Use formatação Markdown. Cifrões simples para matemática em linha (`$x^2$`) e duplos isolados (`$$x^2$$`). Cuidado ao usar o cifrão isolado, se for escrever o nome de uma variável ou letra, escreva em formato matemático (ex: `$a$`, `$b$`, `$c$`). PROIBIDO usar `\\[ ... \\]`, `\\( ... \\)` ou um cifrão único sem fechamento (nunca faça `a, b e $c:`).
 - Gráficos Matemáticos: Se você estiver ensinando uma função matemática ou conceito que fica mais claro com um gráfico cartesiano (ex: função de 1º ou 2º grau), adicione um bloco do tipo "grafico_matematico" com a fórmula. Nosso motor backend gerará um gráfico perfeito em alta resolução para o aluno.
 
 Formato OBRIGATÓRIO do JSON de saída (A array 'blocos' deve fluir como uma aula natural, seguido por exemplo e depois os exercicios no final):
