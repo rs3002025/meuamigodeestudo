@@ -84,6 +84,7 @@ def init_db():
             """)
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS erro_notebook JSONB DEFAULT '[]'::jsonb")
             # Plans table
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS plans (

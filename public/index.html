@@ -376,7 +376,7 @@
               <div style="font-size: 48px; margin-bottom: 16px;">⚔️</div>
               <h3 style="margin-bottom: 16px;">Simulado de Nivelamento</h3>
               <p style="color: var(--text-muted); margin-bottom: 24px;">10 questões mistas baseadas na sua trilha.</p>
-              <button class="btn btn-primary" style="width: auto; padding: 12px 32px;">Iniciar Simulado</button>
+              <button class="btn btn-primary" style="width: auto; padding: 12px 32px;" onclick="iniciarSimulado()">Iniciar Simulado</button>
           </div>
         </div>
 
@@ -466,6 +466,32 @@
         if (viewName === 'lab') {
             await loadLabData();
         }
+      }
+
+      async function iniciarSimulado() {
+          toggleLoader(true);
+          try {
+              const res = await post(`/api/tarefas/${state.userId}/simulado`, { tema: state.objetivo, quantidade: 10 });
+              if(res.simulado) {
+                  state.lessonActive = res.simulado;
+                  state.lessonActive.conteudo = { blocos: [ { tipo: 'exercicios', perguntas: res.simulado.questoes.map(q => q.enunciado) } ] };
+                  state.lessonStep = 0;
+                  state.tutorHistory = [];
+                  $('lesson-feed').innerHTML = '';
+                  $('btn-concluir-missao').classList.add('hidden');
+                  navigate('lesson');
+                  renderLessonFlow();
+                  $('tutor-chat').innerHTML = '';
+                  const introBubble = document.createElement('div');
+                  introBubble.className = 'msg-bubble msg-ai';
+                  introBubble.textContent = `Tutor Online. Simulado: ${state.objetivo}. O que deseja explorar?`;
+                  $('tutor-chat').appendChild(introBubble);
+              }
+          } catch(e) {
+              alert(e.message);
+          } finally {
+              toggleLoader(false);
+          }
       }
 
       async function loadLabData() {
@@ -597,7 +623,11 @@
         renderLessonFlow();
 
         // Reseta o tutor lateral
-        $('tutor-chat').innerHTML = `<div class="msg-bubble msg-ai">Tutor Online. Lição: ${task.tema}. O que deseja explorar?</div>`;
+        $('tutor-chat').innerHTML = '';
+        const introBubble = document.createElement('div');
+        introBubble.className = 'msg-bubble msg-ai';
+        introBubble.textContent = `Tutor Online. Lição: ${task.tema}. O que deseja explorar?`;
+        $('tutor-chat').appendChild(introBubble);
       }
 
       async function renderMarkdown(targetDiv, mdText) {
