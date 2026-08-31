@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 import logging
 import os
 
+from routes.admin_routes import admin_bp
 from routes.avaliacao_routes import avaliacao_bp
 from routes.onboarding_routes import onboarding_bp
 from routes.plano_routes import plano_bp
@@ -19,6 +20,7 @@ def create_app() -> Flask:
     def health():
         return jsonify({"status": "ok", "service": "amigo-de-estudo"})
 
+    app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(onboarding_bp, url_prefix="/api/onboarding")
     app.register_blueprint(plano_bp, url_prefix="/api/plano")
     app.register_blueprint(tarefa_bp, url_prefix="/api/tarefas")
